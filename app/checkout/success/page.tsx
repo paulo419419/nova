@@ -1,12 +1,14 @@
 'use client'
 
+import dynamic from 'next/dynamic'
+import { Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 
-export default function CheckoutSuccessPage() {
+function CheckoutSuccessContent() {
   const searchParams = useSearchParams()
   const orderId = searchParams.get('order')
   const method = searchParams.get('method')
@@ -119,5 +121,13 @@ export default function CheckoutSuccessPage() {
         </Card>
       </div>
     </main>
+  )
+}
+
+export default function CheckoutSuccessPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Loading...</div>}>
+      <CheckoutSuccessContent />
+    </Suspense>
   )
 }
