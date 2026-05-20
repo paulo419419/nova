@@ -6,14 +6,14 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
-import { createClient } from '@/lib/supabase/client'
 
-export default function AdminLoginPage() {
+export default function AddAdminPage() {
   const router = useRouter()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [success, setSuccess] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -21,38 +21,28 @@ export default function AdminLoginPage() {
     setLoading(true)
 
     try {
-      const supabase = createClient()
+      const response = await fetch('/api/admin/add-admin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          newAdminEmail: email,
+          newAdminPassword: password,
+        }),
+      })
 
-      // Sign in only - no sign up allowed
-      const { data, error: signInError } = await supabase.auth.signInWithPassword(
-        {
-          email,
-          password,
-        }
-      )
+      const data = await response.json()
 
-      if (signInError) {
-        setError(signInError.message)
+      if (!response.ok) {
+        setError(data.error || 'Failed to add admin')
         return
       }
 
-      if (data.user) {
-        // Verify admin exists in admin_users table
-        const { data: adminData, error: adminError } = await supabase
-          .from('admin_users')
-          .select('id')
-          .eq('email', email)
-          .single()
-
-        if (adminError || !adminData) {
-          setError('You are not authorized as an admin')
-          // Sign out if not admin
-          await supabase.auth.signOut()
-          return
-        }
-
-        router.push('/admin/dashboard')
-      }
+      setSuccess(true)
+      setEmail('')
+      setPassword('')
+      setTimeout(() => {
+        router.push('/admin/dashboard?tab=admins')
+      }, 2000)
     } catch (err) {
       setError('An error occurred. Please try again.')
     } finally {
@@ -61,11 +51,11 @@ export default function AdminLoginPage() {
   }
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-blue-50 to-slate-100 flex flex-col">
+    <main className="min-h-screen bg-slate-50">
       {/* Header */}
-      <header className="bg-white border-b border-slate-200 py-4 px-4">
-        <div className="max-w-md mx-auto flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2">
+      <header className="bg-white border-b border-slate-200 sticky top-0 z-40 py-4 px-4 md:px-6">
+        <div className="max-w-7xl mx-auto flex items-center justify-between">
+          <Link href="/admin/dashboard" className="flex items-center gap-3">
             <Image
               src="/nova-gadgets-logo.jpg"
               alt="NOVA GADGETS"
@@ -73,22 +63,34 @@ export default function AdminLoginPage() {
               height={32}
               className="rounded"
             />
-            <span className="font-bold text-slate-900">NOVA</span>
+            <div>
+              <h1 className="font-bold text-slate-900">Admin Dashboard</h1>
+            </div>
+          </Link>
+          <Link href="/admin/dashboard">
+            <Button variant="outline" size="sm">
+              Back to Dashboard
+            </Button>
           </Link>
         </div>
       </header>
 
-      {/* Main Content */}
-      <div className="flex-1 flex items-center justify-center px-4 py-8">
-        <Card className="w-full max-w-md p-6 md:p-8 shadow-lg">
+      <div className="max-w-2xl mx-auto px-4 py-8">
+        <Card className="p-6 md:p-8">
           <div className="text-center mb-6">
-            <h1 className="text-2xl font-bold text-slate-900 mb-2">
-              Admin Panel
-            </h1>
+            <h2 className="text-2xl font-bold text-slate-900 mb-2">
+              Add New Admin
+            </h2>
             <p className="text-slate-600 text-sm">
-              Sign in to manage your store
+              Create a new administrator account for your store
             </p>
           </div>
+
+          {success && (
+            <div className="p-4 bg-green-50 border border-green-200 rounded-lg text-sm text-green-700 mb-4">
+              Admin account created successfully! Redirecting...
+            </div>
+          )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Email Field */}
@@ -100,7 +102,7 @@ export default function AdminLoginPage() {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="admin@novagadgets.com"
+                placeholder="newadmin@novagadgets.com"
                 className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 required
               />
@@ -115,10 +117,13 @@ export default function AdminLoginPage() {
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
+                placeholder="Create a strong password"
                 className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 required
               />
+              <p className="text-xs text-slate-600 mt-1">
+                Minimum 8 characters recommended
+              </p>
             </div>
 
             {/* Error Message */}
@@ -134,18 +139,9 @@ export default function AdminLoginPage() {
               disabled={loading}
               className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2"
             >
-              {loading ? 'Please wait...' : 'Sign In'}
+              {loading ? 'Creating account...' : 'Create Admin Account'}
             </Button>
           </form>
-
-
-
-          {/* Back to Store */}
-          <Link href="/">
-            <Button variant="outline" className="w-full mt-4">
-              Back to Store
-            </Button>
-          </Link>
         </Card>
       </div>
     </main>

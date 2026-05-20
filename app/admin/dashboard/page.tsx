@@ -34,7 +34,7 @@ export default function AdminDashboard() {
     totalRevenue: 0,
   })
   const [loading, setLoading] = useState(true)
-  const [tab, setTab] = useState<'overview' | 'gadgets' | 'orders'>('overview')
+  const [tab, setTab] = useState<'overview' | 'gadgets' | 'orders' | 'admins'>('overview')
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -168,12 +168,12 @@ export default function AdminDashboard() {
 
       <div className="max-w-7xl mx-auto px-4 py-8">
         {/* Tabs */}
-        <div className="flex gap-2 mb-6 border-b border-slate-200">
-          {(['overview', 'gadgets', 'orders'] as const).map((t) => (
+        <div className="flex gap-2 mb-6 border-b border-slate-200 overflow-x-auto">
+          {(['overview', 'gadgets', 'orders', 'admins'] as const).map((t) => (
             <button
               key={t}
               onClick={() => setTab(t)}
-              className={`px-4 py-3 font-medium text-sm border-b-2 transition-colors ${
+              className={`px-4 py-3 font-medium text-sm border-b-2 transition-colors whitespace-nowrap ${
                 tab === t
                   ? 'border-blue-600 text-blue-600'
                   : 'border-transparent text-slate-600 hover:text-slate-900'
@@ -336,6 +336,25 @@ export default function AdminDashboard() {
             <Card className="p-8 text-center">
               <p className="text-slate-600">
                 Orders management coming soon
+              </p>
+            </Card>
+          </div>
+        )}
+
+        {/* Admins Tab */}
+        {tab === 'admins' && (
+          <div>
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-lg font-semibold text-slate-900">
+                Admin Accounts
+              </h2>
+              <Link href="/admin/add-admin">
+                <Button>Add New Admin</Button>
+              </Link>
+            </div>
+            <Card className="p-6">
+              <p className="text-slate-600 text-sm">
+                Only existing admins can create new admin accounts. Use the "Add New Admin" button to register a new administrator.
               </p>
             </Card>
           </div>

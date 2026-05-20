@@ -60,7 +60,7 @@ export default function Home() {
     <main className="min-h-screen bg-gradient-to-br from-blue-50 to-slate-100 flex flex-col">
       {/* Header */}
       <header className="bg-white border-b border-slate-200 py-4 px-4 md:px-6">
-        <div className="max-w-6xl mx-auto flex items-center justify-between">
+        <div className="max-w-6xl mx-auto flex items-center">
           <div className="flex items-center gap-3">
             <Image
               src="/nova-gadgets-logo.jpg"
@@ -78,11 +78,6 @@ export default function Home() {
               </p>
             </div>
           </div>
-          <Link href="/admin/login">
-            <Button variant="outline" size="sm">
-              Admin Panel
-            </Button>
-          </Link>
         </div>
       </header>
 
