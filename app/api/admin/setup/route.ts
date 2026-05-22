@@ -4,15 +4,7 @@ import { NextRequest, NextResponse } from 'next/server'
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { email, password, setupKey } = body
-
-    // Security: Require a setup key to prevent unauthorized use
-    if (setupKey !== process.env.ADMIN_SETUP_KEY) {
-      return NextResponse.json(
-        { error: 'Invalid setup key' },
-        { status: 401 }
-      )
-    }
+    const { email, password } = body
 
     if (!email || !password) {
       return NextResponse.json(
