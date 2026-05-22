@@ -1,11 +1,12 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
+import { createClient } from '@/lib/supabase/client'
 
 export default function AddAdminPage() {
   const router = useRouter()
@@ -14,6 +15,35 @@ export default function AddAdminPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
+  const [isAuthorized, setIsAuthorized] = useState(false)
+
+  useEffect(() => {
+    checkAuth()
+  }, [])
+
+  const checkAuth = async () => {
+    const supabase = createClient()
+    const { data: { user }, error: userError } = await supabase.auth.getUser()
+    
+    if (userError || !user) {
+      router.push('/admin/login')
+      return
+    }
+
+    // Verify user is admin
+    const { data: adminCheck } = await supabase
+      .from('admin_users')
+      .select('id')
+      .eq('email', user.email)
+      .single()
+
+    if (!adminCheck) {
+      router.push('/admin/dashboard')
+      return
+    }
+
+    setIsAuthorized(true)
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -48,6 +78,16 @@ export default function AddAdminPage() {
     } finally {
       setLoading(false)
     }
+  }
+
+  if (!isAuthorized) {
+    return (
+      <main className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-slate-600">Checking authorization...</p>
+        </div>
+      </main>
+    )
   }
 
   return (

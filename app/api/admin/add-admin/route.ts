@@ -1,11 +1,12 @@
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/server-admin'
 import { NextRequest, NextResponse } from 'next/server'
 
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient()
     
-    // Get current user
+    // Get current user from session
     const { data: { user }, error: userError } = await supabase.auth.getUser()
     
     if (userError || !user) {
@@ -16,7 +17,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if current user is admin
-    const { data: adminCheck, error: adminCheckError } = await supabase
+    const adminClient = createAdminClient()
+    const { data: adminCheck, error: adminCheckError } = await adminClient
       .from('admin_users')
       .select('id')
       .eq('email', user.email)
@@ -40,11 +42,10 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Create new admin user using admin API
-    const { data: newUser, error: createError } = await supabase.auth.admin.createUser({
+    // Create new admin user using admin API with service role key
+    const { data: newUser, error: createError } = await adminClient.auth.admin.createUser({
       email: newAdminEmail,
       password: newAdminPassword,
-      user_metadata: { is_admin: true },
       email_confirm: true, // Auto-confirm email
     })
 
@@ -56,7 +57,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Add to admin_users table
-    const { error: dbError } = await supabase
+    const { error: dbError } = await adminClient
       .from('admin_users')
       .insert([
         {
@@ -67,7 +68,7 @@ export async function POST(request: NextRequest) {
 
     if (dbError) {
       // Delete the created user if we can't add to admin table
-      await supabase.auth.admin.deleteUser(newUser.user.id)
+      await adminClient.auth.admin.deleteUser(newUser.user.id)
       return NextResponse.json(
         { error: 'Failed to add admin to database' },
         { status: 500 }
