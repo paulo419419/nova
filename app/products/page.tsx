@@ -125,11 +125,6 @@ export default function ProductsPage() {
                 Cart
               </Button>
             </Link>
-            <Link href="/admin/login">
-              <Button variant="outline" size="sm">
-                Admin
-              </Button>
-            </Link>
           </div>
         </div>
       </header>
