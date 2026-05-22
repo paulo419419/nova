@@ -8,9 +8,10 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { createClient } from '@/lib/supabase/client'
 
-const BRANDS = ['Apple', 'Dell', 'HP', 'Lenovo', 'ASUS', 'Acer', 'MSI']
-const PROCESSORS = ['Core i5', 'Core i7', 'Core i9', 'Ryzen 5', 'Ryzen 7', 'Ryzen 9', 'M1', 'M2', 'M3']
-const GENERATIONS = ['7th Gen', '8th Gen', '10th Gen', '11th Gen', '12th Gen', '13th Gen']
+const CATEGORIES = ['Laptop', 'Mobile Phone', 'AirPods', 'Tablet', 'Monitor', 'Keyboard', 'Mouse', 'External SSD', 'Other']
+const BRANDS = ['Apple', 'Dell', 'HP', 'Lenovo', 'ASUS', 'Acer', 'MSI', 'Samsung', 'Google', 'OnePlus', 'Sony']
+const PROCESSORS = ['Core i5', 'Core i7', 'Core i9', 'Ryzen 5', 'Ryzen 7', 'Ryzen 9', 'M1', 'M2', 'M3', 'Snapdragon', 'Exynos', 'A14', 'A15', 'A16']
+const GENERATIONS = ['7th Gen', '8th Gen', '10th Gen', '11th Gen', '12th Gen', '13th Gen', '14th Gen']
 const SOFTWARE = ['Adobe Premiere', 'DaVinci Resolve', 'CapCut']
 const PRICE_CATEGORIES = ['100k', '200k', '300k', 'above']
 
@@ -29,6 +30,7 @@ export default function EditGadgetPage() {
     name: '',
     description: '',
     price: '',
+    category: 'Laptop',
     brand: '',
     processor: '',
     processor_generation: '',
@@ -337,6 +339,29 @@ export default function EditGadgetPage() {
                 rows={3}
                 className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
+            </div>
+
+            {/* Product Category */}
+            <div>
+              <label className="block text-sm font-medium text-slate-900 mb-2">
+                Product Category *
+              </label>
+              <select
+                value={formData.category}
+                onChange={(e) =>
+                  setFormData((p) => ({
+                    ...p,
+                    category: e.target.value,
+                  }))
+                }
+                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                {CATEGORIES.map((cat) => (
+                  <option key={cat} value={cat}>
+                    {cat}
+                  </option>
+                ))}
+              </select>
             </div>
 
             {/* Price Category */}
