@@ -20,8 +20,8 @@ export default function AddGadgetPage() {
   const [user, setUser] = useState<any>(null)
   const [loading, setLoading] = useState(false)
   const [authLoading, setAuthLoading] = useState(true)
-  const [imageFile, setImageFile] = useState<File | null>(null)
-  const [imagePreview, setImagePreview] = useState<string>('')
+  const [imageFiles, setImageFiles] = useState<File[]>([])
+  const [imagePreviews, setImagePreviews] = useState<string[]>([])
   const [uploadingImage, setUploadingImage] = useState(false)
   const [error, setError] = useState('')
 
@@ -68,40 +68,56 @@ export default function AddGadgetPage() {
   }, [router])
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (file) {
-      setImageFile(file)
-      const reader = new FileReader()
-      reader.onloadend = () => {
-        setImagePreview(reader.result as string)
-      }
-      reader.readAsDataURL(file)
+    const files = Array.from(e.target.files || [])
+    if (files.length > 0) {
+      // Add new files to existing array
+      setImageFiles(prev => [...prev, ...files])
+      
+      // Create previews for new files
+      files.forEach(file => {
+        const reader = new FileReader()
+        reader.onloadend = () => {
+          setImagePreviews(prev => [...prev, reader.result as string])
+        }
+        reader.readAsDataURL(file)
+      })
     }
   }
 
-  const uploadImage = async (): Promise<string | null> => {
-    if (!imageFile) return null
+  const removeImage = (index: number) => {
+    setImageFiles(prev => prev.filter((_, i) => i !== index))
+    setImagePreviews(prev => prev.filter((_, i) => i !== index))
+  }
+
+  const uploadImages = async (): Promise<string[]> => {
+    if (imageFiles.length === 0) return []
 
     try {
       setUploadingImage(true)
       const supabase = createClient()
-      const fileName = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
-      const { data, error } = await supabase.storage
-        .from('gadget-images')
-        .upload(`public/${fileName}`, imageFile)
+      const uploadedUrls: string[] = []
 
-      if (error) throw error
+      for (const imageFile of imageFiles) {
+        const fileName = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+        const { data, error } = await supabase.storage
+          .from('gadget-images')
+          .upload(`public/${fileName}`, imageFile)
 
-      // Get the public URL
-      const {
-        data: { publicUrl },
-      } = supabase.storage.from('gadget-images').getPublicUrl(`public/${fileName}`)
+        if (error) throw error
 
-      return publicUrl
+        // Get the public URL
+        const {
+          data: { publicUrl },
+        } = supabase.storage.from('gadget-images').getPublicUrl(`public/${fileName}`)
+
+        uploadedUrls.push(publicUrl)
+      }
+
+      return uploadedUrls
     } catch (err) {
       console.error('Image upload error:', err)
-      setError('Failed to upload image')
-      return null
+      setError('Failed to upload images')
+      return []
     } finally {
       setUploadingImage(false)
     }
@@ -122,31 +138,49 @@ export default function AddGadgetPage() {
     setLoading(true)
 
     try {
-      // Upload image if provided
-      let imageUrl = ''
-      if (imageFile) {
-        const url = await uploadImage()
-        if (!url) {
+      // Upload images if provided
+      let imageUrls: string[] = []
+      if (imageFiles.length > 0) {
+        imageUrls = await uploadImages()
+        if (imageUrls.length === 0) {
           setLoading(false)
           return
         }
-        imageUrl = url
       }
 
-      // Save to database
+      // Save to database with primary image (first image)
       const supabase = createClient()
-      const { error: dbError } = await supabase.from('gadgets').insert([
+      const { data: productData, error: dbError } = await supabase.from('gadgets').insert([
         {
           ...formData,
           price: parseFloat(formData.price),
           ram_gb: parseInt(formData.ram_gb),
           storage_gb: formData.storage_gb ? parseInt(formData.storage_gb) : null,
           screen_size: formData.screen_size ? parseFloat(formData.screen_size) : null,
-          image_url: imageUrl,
+          image_url: imageUrls[0] || null,
         },
-      ])
+      ]).select()
 
       if (dbError) throw dbError
+
+      // If we have additional images, save them to product_images table
+      if (imageUrls.length > 1 && productData && productData[0]) {
+        const productId = productData[0].id
+        const additionalImages = imageUrls.slice(1).map((url, index) => ({
+          product_id: productId,
+          image_url: url,
+          display_order: index + 1,
+        }))
+
+        const { error: imagesError } = await supabase
+          .from('product_images')
+          .insert(additionalImages)
+
+        if (imagesError) {
+          console.error('Failed to save additional images:', imagesError)
+          // Continue anyway - primary image is saved
+        }
+      }
 
       router.push('/admin/dashboard')
     } catch (err: any) {
@@ -200,43 +234,73 @@ export default function AddGadgetPage() {
               </div>
             )}
 
-            {/* Image Upload */}
+            {/* Multiple Image Upload */}
             <div>
               <label className="block text-sm font-semibold text-slate-900 mb-3">
-                Product Image
+                Product Images <span className="text-slate-600 text-xs">(Upload multiple images)</span>
               </label>
-              <div className="border-2 border-dashed border-slate-300 rounded-lg p-6 text-center">
-                {imagePreview ? (
-                  <div className="relative h-64 w-full mb-4">
-                    <Image
-                      src={imagePreview}
-                      alt="Preview"
-                      fill
-                      className="object-contain"
-                    />
-                  </div>
-                ) : (
-                  <div className="text-slate-600 mb-4">
-                    <div className="text-4xl mb-2">📷</div>
-                    <p>Drag and drop or click to upload</p>
-                  </div>
-                )}
+              
+              {/* Image Previews */}
+              {imagePreviews.length > 0 && (
+                <div className="mb-4 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                  {imagePreviews.map((preview, index) => (
+                    <div key={index} className="relative group">
+                      <div className="relative h-32 w-full border border-slate-200 rounded-lg overflow-hidden">
+                        <Image
+                          src={preview}
+                          alt={`Preview ${index + 1}`}
+                          fill
+                          className="object-cover"
+                        />
+                      </div>
+                      <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button
+                          type="button"
+                          onClick={() => removeImage(index)}
+                          className="bg-red-500 hover:bg-red-600 text-white rounded-full p-1"
+                        >
+                          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                          </svg>
+                        </button>
+                      </div>
+                      <p className="text-xs text-slate-600 text-center mt-1">
+                        {index === 0 ? 'Primary' : `Image ${index + 1}`}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Upload Area */}
+              <div className="border-2 border-dashed border-slate-300 rounded-lg p-6 text-center hover:bg-slate-50 transition-colors">
+                <div className="text-slate-600 mb-4">
+                  <div className="text-4xl mb-2">📷</div>
+                  <p>Drag and drop multiple images or click to upload</p>
+                  <p className="text-xs text-slate-500 mt-1">PNG, JPG, GIF up to 10MB each</p>
+                </div>
                 <input
                   type="file"
                   accept="image/*"
                   onChange={handleImageChange}
                   className="hidden"
                   id="image-upload"
+                  multiple
                 />
                 <label
                   htmlFor="image-upload"
                   className="inline-block cursor-pointer"
                 >
                   <Button type="button" variant="outline">
-                    Choose Image
+                    {imageFiles.length > 0 ? 'Add More Images' : 'Choose Images'}
                   </Button>
                 </label>
               </div>
+              {imageFiles.length > 0 && (
+                <p className="text-sm text-slate-600 mt-2">
+                  {imageFiles.length} image{imageFiles.length !== 1 ? 's' : ''} selected
+                </p>
+              )}
             </div>
 
             {/* Basic Info */}

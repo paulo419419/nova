@@ -16,17 +16,24 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Check if current user is admin
+    // Check if current user is a SUPER ADMIN (only super admins can create new admins)
     const adminClient = createAdminClient()
     const { data: adminCheck, error: adminCheckError } = await adminClient
       .from('admin_users')
-      .select('id')
+      .select('id, is_super_admin')
       .eq('email', user.email)
       .single()
 
     if (adminCheckError || !adminCheck) {
       return NextResponse.json(
         { error: 'Unauthorized - not an admin' },
+        { status: 403 }
+      )
+    }
+
+    if (!adminCheck.is_super_admin) {
+      return NextResponse.json(
+        { error: 'Forbidden - only super admins can create new admins' },
         { status: 403 }
       )
     }

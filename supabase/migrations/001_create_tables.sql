@@ -1,3 +1,13 @@
+-- Create admin_users table (for managing admins)
+CREATE TABLE IF NOT EXISTS admin_users (
+  id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  email VARCHAR(255) NOT NULL UNIQUE,
+  full_name VARCHAR(255),
+  is_super_admin BOOLEAN DEFAULT false,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Create products table
 CREATE TABLE IF NOT EXISTS products (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -14,6 +24,16 @@ CREATE TABLE IF NOT EXISTS products (
   is_featured BOOLEAN DEFAULT false,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Create product_images table (for multiple images per product)
+CREATE TABLE IF NOT EXISTS product_images (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  product_id UUID NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+  image_url VARCHAR(500) NOT NULL,
+  alt_text VARCHAR(255),
+  display_order INTEGER DEFAULT 0,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Create inquiries table for customer inquiries via WhatsApp
@@ -60,9 +80,12 @@ CREATE TABLE IF NOT EXISTS reviews (
 );
 
 -- Create indexes for better performance
+CREATE INDEX idx_admin_users_email ON admin_users(email);
 CREATE INDEX idx_products_category ON products(category);
 CREATE INDEX idx_products_budget_tier ON products(budget_tier);
 CREATE INDEX idx_products_compatible_software ON products(compatible_software);
+CREATE INDEX idx_product_images_product_id ON product_images(product_id);
+CREATE INDEX idx_product_images_order ON product_images(product_id, display_order);
 CREATE INDEX idx_inquiries_status ON inquiries(status);
 CREATE INDEX idx_inquiries_created_at ON inquiries(created_at);
 CREATE INDEX idx_reviews_product_id ON reviews(product_id);
