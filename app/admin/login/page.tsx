@@ -37,16 +37,15 @@ export default function AdminLoginPage() {
       }
 
       if (data.user) {
-        // Verify admin exists in admin_users table
-        const { data: adminData, error: adminError } = await supabase
-          .from('admin_users')
-          .select('id')
-          .eq('email', email)
-          .single()
+        // For now, allow authorized email to access admin
+        // TODO: Implement proper admin_users table check once Supabase schema is migrated
+        const authorizedEmails = [
+          'juliusokpanachi419@gmail.com',
+          'novacreations111@gmail.com'
+        ]
 
-        if (adminError || !adminData) {
+        if (!authorizedEmails.includes(email)) {
           setError('You are not authorized as an admin')
-          // Sign out if not admin
           await supabase.auth.signOut()
           return
         }
