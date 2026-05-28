@@ -59,7 +59,7 @@ export default function Home() {
   return (
     <main className="min-h-screen bg-gradient-to-br from-blue-50 to-slate-100 flex flex-col">
       {/* Header */}
-      <header className="bg-white border-b border-slate-200 py-4 px-4 md:px-6">
+      <header className="bg-white border-b border-slate-200 py-4 px-4 md:px-6 sticky top-0 z-50 shadow-sm">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Image
@@ -80,17 +80,17 @@ export default function Home() {
           </div>
           
           {/* Social Icons */}
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3 md:gap-4">
             {/* WhatsApp */}
             <a
               href="https://wa.me/2347036947900"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-green-500 hover:text-green-600 transition-colors"
+              className="flex items-center justify-center w-10 h-10 md:w-12 md:h-12 rounded-full bg-green-50 hover:bg-green-100 text-green-600 hover:text-green-700 transition-all duration-200 shadow-sm hover:shadow-md"
               title="Message us on WhatsApp"
             >
               <svg
-                className="w-6 h-6"
+                className="w-5 h-5 md:w-6 md:h-6"
                 fill="currentColor"
                 viewBox="0 0 24 24"
               >
@@ -103,11 +103,11 @@ export default function Home() {
               href="https://www.tiktok.com/@muhammad.the.edit"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-gray-900 hover:text-blue-500 transition-colors"
+              className="flex items-center justify-center w-10 h-10 md:w-12 md:h-12 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-800 hover:text-blue-600 transition-all duration-200 shadow-sm hover:shadow-md"
               title="Follow us on TikTok"
             >
               <svg
-                className="w-6 h-6"
+                className="w-5 h-5 md:w-6 md:h-6"
                 fill="currentColor"
                 viewBox="0 0 24 24"
               >
