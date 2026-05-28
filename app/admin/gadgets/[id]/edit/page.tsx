@@ -73,6 +73,7 @@ export default function EditGadgetPage() {
             name: data.name || '',
             description: data.description || '',
             price: data.price?.toString() || '',
+            category: data.category || 'Laptop',
             brand: data.brand || '',
             processor: data.processor || '',
             processor_generation: data.processor_generation || '',

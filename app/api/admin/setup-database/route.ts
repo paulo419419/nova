@@ -20,13 +20,19 @@ export async function POST(request: Request) {
     const migrationPath = path.join(process.cwd(), 'supabase/migrations/001_create_tables.sql')
     const migrationSQL = fs.readFileSync(migrationPath, 'utf-8')
 
-    // Execute the migration
-    const { error } = await supabase.rpc('exec_sql', {
-      sql: migrationSQL,
-    }).catch(() => {
-      // If RPC doesn't exist, try direct execution
-      return supabase.from('_migrations').select('*').limit(1)
-    })
+    // Execute the migration - note: direct SQL execution via RPC requires proper setup
+    // This is a fallback approach that guides users to run migrations manually
+    let error = null
+    try {
+      // Attempt to call exec_sql RPC if it exists
+      const result = await supabase.rpc('exec_sql', {
+        sql: migrationSQL,
+      })
+      error = result.error
+    } catch (err) {
+      // RPC doesn't exist, set error to prompt manual execution
+      error = { message: 'RPC not available' }
+    }
 
     if (error) {
       console.error('Migration error:', error)
