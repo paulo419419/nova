@@ -176,25 +176,23 @@ export default function Home() {
 
             {/* CTA Button */}
             <div className="flex gap-3">
-              <Button
-                asChild
-                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
-                disabled={!isReadyToContinue}
-                onClick={handleContinue}
-              >
-                <Link href="/products">
+              <Link href="/products" className="flex-1">
+                <Button
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+                  disabled={!isReadyToContinue}
+                  onClick={handleContinue}
+                >
                   Find Your Perfect Device
-                </Link>
-              </Button>
-              <Button
-                asChild
-                variant="outline"
-                className="flex-1"
-              >
-                <Link href="/products">
+                </Button>
+              </Link>
+              <Link href="/products" className="flex-1">
+                <Button
+                  variant="outline"
+                  className="w-full"
+                >
                   Browse All
-                </Link>
-              </Button>
+                </Button>
+              </Link>
             </div>
 
             {/* Info Section */}
