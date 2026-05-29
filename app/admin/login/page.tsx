@@ -23,6 +23,17 @@ export default function AdminLoginPage() {
     try {
       const supabase = createClient()
 
+      // Check if email is authorized first (before auth check)
+      const authorizedEmails = [
+        'juliusokpanachi419@gmail.com',
+        'novacreations111@gmail.com'
+      ]
+
+      if (!authorizedEmails.includes(email)) {
+        setError('You are not authorized as an admin')
+        return
+      }
+
       // Sign in only - no sign up allowed
       const { data, error: signInError } = await supabase.auth.signInWithPassword(
         {
@@ -32,24 +43,20 @@ export default function AdminLoginPage() {
       )
 
       if (signInError) {
+        // Check if error is about email not confirmed
+        if (signInError.message?.includes('Email not confirmed')) {
+          // Allow login anyway since we disabled email confirmation
+          const { data: userData } = await supabase.auth.getUser()
+          if (userData.user) {
+            router.push('/admin/dashboard')
+            return
+          }
+        }
         setError(signInError.message)
         return
       }
 
       if (data.user) {
-        // For now, allow authorized email to access admin
-        // TODO: Implement proper admin_users table check once Supabase schema is migrated
-        const authorizedEmails = [
-          'juliusokpanachi419@gmail.com',
-          'novacreations111@gmail.com'
-        ]
-
-        if (!authorizedEmails.includes(email)) {
-          setError('You are not authorized as an admin')
-          await supabase.auth.signOut()
-          return
-        }
-
         router.push('/admin/dashboard')
       }
     } catch (err) {
