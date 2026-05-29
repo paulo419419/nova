@@ -281,12 +281,12 @@ export default function AddGadgetPage() {
                 </div>
                 <input
                   type="file"
-                  accept="image/*"
+                  accept="image/*,.png,.jpg,.jpeg,.gif,.webp"
                   onChange={handleImageChange}
                   className="hidden"
                   id="image-upload"
                   multiple
-                  capture="environment"
+                  aria-label="Upload product images"
                 />
                 <label
                   htmlFor="image-upload"
