@@ -61,7 +61,7 @@ export default function EditGadgetPage() {
         
         // Fetch gadget
         const { data, error: fetchError } = await supabase
-          .from('gadgets')
+          .from('products')
           .select('*')
           .eq('id', params.id)
           .single()
@@ -169,7 +169,7 @@ export default function EditGadgetPage() {
       // Update database
       const supabase = createClient()
       const { error: dbError } = await supabase
-        .from('gadgets')
+        .from('products')
         .update({
           ...formData,
           price: parseFloat(formData.price),
@@ -198,7 +198,7 @@ export default function EditGadgetPage() {
       setLoading(true)
       const supabase = createClient()
       const { error } = await supabase
-        .from('gadgets')
+        .from('products')
         .delete()
         .eq('id', params.id)
 
