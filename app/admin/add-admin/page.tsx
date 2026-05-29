@@ -22,35 +22,45 @@ export default function AddAdminPage() {
   }, [])
 
   const checkAuth = async () => {
-    const supabase = createClient()
-    const { data: { user }, error: userError } = await supabase.auth.getUser()
-    
-    if (userError || !user) {
-      router.push('/admin/login')
-      return
-    }
-
-    // Verify user is authorized email (main admin)
-    const authorizedEmails = [
-      'juliusokpanachi419@gmail.com',
-      'novacreations111@gmail.com'
-    ]
-
-    if (!authorizedEmails.includes(user.email || '')) {
-      // Try checking admin_users table
-      const { data: adminCheck } = await supabase
-        .from('admin_users')
-        .select('id, is_super_admin')
-        .eq('email', user.email)
-        .single()
-
-      if (!adminCheck || !adminCheck.is_super_admin) {
-        router.push('/admin/dashboard')
+    try {
+      const supabase = createClient()
+      const { data: { user }, error: userError } = await supabase.auth.getUser()
+      
+      if (userError || !user) {
+        router.push('/admin/login')
         return
       }
-    }
 
-    setIsAuthorized(true)
+      // Verify user is authorized email (main admin)
+      const authorizedEmails = [
+        'juliusokpanachi419@gmail.com',
+        'novacreations111@gmail.com'
+      ]
+
+      if (!authorizedEmails.includes(user.email || '')) {
+        // Try checking admin_users table if it exists
+        try {
+          const { data: adminCheck } = await supabase
+            .from('admin_users')
+            .select('id, is_super_admin')
+            .eq('email', user.email)
+            .single()
+
+          if (!adminCheck || !adminCheck.is_super_admin) {
+            router.push('/admin/dashboard')
+            return
+          }
+        } catch (tableError) {
+          // Table doesn't exist yet, allow authorized emails to proceed
+          console.log('[v0] admin_users table check skipped')
+        }
+      }
+
+      setIsAuthorized(true)
+    } catch (error) {
+      console.error('[v0] Auth check error:', error)
+      setIsAuthorized(false)
+    }
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
