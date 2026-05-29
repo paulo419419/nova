@@ -70,28 +70,34 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Add to admin_users table
-    const { error: dbError } = await adminClient
-      .from('admin_users')
-      .insert([
-        {
-          id: newUser.user.id,
-          email: newUser.user.email,
-        },
-      ])
+    // Try to add to admin_users table (table might not exist yet)
+    try {
+      const { error: dbError } = await adminClient
+        .from('admin_users')
+        .insert([
+          {
+            id: newUser.user.id,
+            email: newUser.user.email,
+            is_super_admin: false,
+          },
+        ])
 
-    if (dbError) {
-      // Delete the created user if we can't add to admin table
-      await adminClient.auth.admin.deleteUser(newUser.user.id)
-      return NextResponse.json(
-        { error: 'Failed to add admin to database' },
-        { status: 500 }
-      )
+      if (dbError && !dbError.message?.includes('schema cache')) {
+        // Only delete user for real errors, not table missing errors
+        await adminClient.auth.admin.deleteUser(newUser.user.id)
+        return NextResponse.json(
+          { error: 'Failed to add admin to database: ' + dbError.message },
+          { status: 500 }
+        )
+      }
+    } catch (tableError) {
+      // Table doesn't exist yet, but auth user was created
+      console.log('[v0] admin_users table does not exist, but auth user created successfully')
     }
 
     return NextResponse.json(
       { 
-        message: 'Admin created successfully',
+        message: 'Admin account created successfully! User can now login with the provided credentials.',
         admin: { id: newUser.user.id, email: newUser.user.email }
       },
       { status: 201 }

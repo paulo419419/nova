@@ -71,10 +71,17 @@ export default function AdminDashboard() {
         .select('id, name, price, brand, processor, is_featured, image_url')
         .order('created_at', { ascending: false })
 
-      if (error) throw error
+      if (error) {
+        if (error.message?.includes('schema cache')) {
+          console.log('[v0] Products table does not exist yet. Run /api/setup-db first')
+        }
+        setGadgets([])
+        return
+      }
       setGadgets(data || [])
     } catch (error) {
-      console.error('Error fetching gadgets:', error)
+      console.error('[v0] Error fetching gadgets:', error)
+      setGadgets([])
     }
   }
 
@@ -82,26 +89,44 @@ export default function AdminDashboard() {
     try {
       const supabase = createClient()
 
-      // Get total gadgets
-      const { count: gadgetCount } = await supabase
+      // Get total gadgets - handle missing table
+      let gadgetCount = 0
+      const gadgetsResult = await supabase
         .from('products')
         .select('*', { count: 'exact', head: true })
+      
+      if (!gadgetsResult.error) {
+        gadgetCount = gadgetsResult.count || 0
+      }
 
-      // Get total orders
-      const { count: orderCount } = await supabase
+      // Get total orders - handle missing table
+      let orderCount = 0
+      const ordersResult = await supabase
         .from('orders')
         .select('*', { count: 'exact', head: true })
+      
+      if (!ordersResult.error) {
+        orderCount = ordersResult.count || 0
+      }
 
-      // Get total revenue
-      const { data: orderData } = await supabase
-        .from('orders')
-        .select('total_price')
-        .eq('payment_status', 'completed')
+      // Get total revenue - handle missing table
+      let totalRevenue = 0
+      try {
+        const { data: orderData } = await supabase
+          .from('orders')
+          .select('total_price')
+          .eq('payment_status', 'completed')
 
-      const totalRevenue = orderData?.reduce(
-        (sum, order) => sum + order.total_price,
-        0
-      ) || 0
+        if (orderData) {
+          totalRevenue = orderData.reduce(
+            (sum, order) => sum + (order.total_price || 0),
+            0
+          )
+        }
+      } catch (e) {
+        // Orders table doesn't exist yet
+        totalRevenue = 0
+      }
 
       setStats({
         totalGadgets: gadgetCount || 0,

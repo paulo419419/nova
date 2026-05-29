@@ -273,25 +273,26 @@ export default function AddGadgetPage() {
               )}
 
               {/* Upload Area */}
-              <div className="border-2 border-dashed border-slate-300 rounded-lg p-6 text-center hover:bg-slate-50 transition-colors">
+              <div className="border-2 border-dashed border-slate-300 rounded-lg p-6 text-center hover:bg-slate-50 transition-colors cursor-pointer active:bg-slate-100">
                 <div className="text-slate-600 mb-4">
                   <div className="text-4xl mb-2">📷</div>
-                  <p>Drag and drop multiple images or click to upload</p>
-                  <p className="text-xs text-slate-500 mt-1">PNG, JPG, GIF up to 10MB each</p>
+                  <p>Tap or click to select images from your device</p>
+                  <p className="text-xs text-slate-500 mt-1">PNG, JPG, GIF - Multiple images allowed</p>
                 </div>
                 <input
                   type="file"
-                  accept="image/*"
+                  accept="image/*,.png,.jpg,.jpeg,.gif,.webp"
                   onChange={handleImageChange}
                   className="hidden"
                   id="image-upload"
                   multiple
+                  aria-label="Upload product images"
                 />
                 <label
                   htmlFor="image-upload"
-                  className="inline-block cursor-pointer"
+                  className="inline-block cursor-pointer w-full"
                 >
-                  <Button type="button" variant="outline">
+                  <Button type="button" variant="outline" className="w-full">
                     {imageFiles.length > 0 ? 'Add More Images' : 'Choose Images'}
                   </Button>
                 </label>
