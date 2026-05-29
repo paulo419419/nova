@@ -40,7 +40,7 @@ export default function ProductDetailPage() {
       try {
         const supabase = createClient()
         const { data, error } = await supabase
-          .from('gadgets')
+          .from('products')
           .select('*')
           .eq('id', params.id)
           .single()

@@ -10,7 +10,7 @@ export async function GET(
     const supabase = await createClient()
 
     const { data, error } = await supabase
-      .from('gadgets')
+      .from('products')
       .select('*')
       .eq('id', id)
       .single()
@@ -20,7 +20,7 @@ export async function GET(
     }
 
     if (!data) {
-      return NextResponse.json({ error: 'Gadget not found' }, { status: 404 })
+      return NextResponse.json({ error: 'Product not found' }, { status: 404 })
     }
 
     return NextResponse.json(data)
@@ -43,7 +43,7 @@ export async function PUT(
     const supabase = await createClient()
 
     const { data, error } = await supabase
-      .from('gadgets')
+      .from('products')
       .update({
         ...body,
         updated_at: new Date().toISOString(),
@@ -75,7 +75,7 @@ export async function DELETE(
     const supabase = await createClient()
 
     const { error } = await supabase
-      .from('gadgets')
+      .from('products')
       .delete()
       .eq('id', id)
 

@@ -11,10 +11,10 @@ export async function GET(request: NextRequest) {
     const minRam = searchParams.get('minRam')
 
     let query = supabase
-      .from('gadgets')
+      .from('products')
       .select('*')
       .eq('category', category)
-      .eq('is_in_stock', true)
+      .eq('is_featured', false)
       .order('created_at', { ascending: false })
 
     if (priceCategory) {
@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
     const supabase = await createClient()
 
     const { data, error } = await supabase
-      .from('gadgets')
+      .from('products')
       .insert([body])
       .select()
       .single()

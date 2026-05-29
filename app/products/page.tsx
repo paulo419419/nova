@@ -35,7 +35,7 @@ export default function ProductsPage() {
       try {
         const supabase = createClient()
         const { data, error } = await supabase
-          .from('gadgets')
+          .from('products')
           .select('*')
           .eq('is_in_stock', true)
           .order('created_at', { ascending: false })

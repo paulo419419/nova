@@ -150,7 +150,7 @@ export default function AddGadgetPage() {
 
       // Save to database with primary image (first image)
       const supabase = createClient()
-      const { data: productData, error: dbError } = await supabase.from('gadgets').insert([
+      const { data: productData, error: dbError } = await supabase.from('products').insert([
         {
           ...formData,
           price: parseFloat(formData.price),

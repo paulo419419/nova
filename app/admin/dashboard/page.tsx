@@ -14,7 +14,7 @@ interface Gadget {
   price: number
   brand: string
   processor: string
-  is_in_stock: boolean
+  is_featured: boolean
   image_url?: string
 }
 
@@ -67,8 +67,8 @@ export default function AdminDashboard() {
     try {
       const supabase = createClient()
       const { data, error } = await supabase
-        .from('gadgets')
-        .select('id, name, price, brand, processor, is_in_stock, image_url')
+        .from('products')
+        .select('id, name, price, brand, processor, is_featured, image_url')
         .order('created_at', { ascending: false })
 
       if (error) throw error
@@ -84,7 +84,7 @@ export default function AdminDashboard() {
 
       // Get total gadgets
       const { count: gadgetCount } = await supabase
-        .from('gadgets')
+        .from('products')
         .select('*', { count: 'exact', head: true })
 
       // Get total orders
@@ -153,6 +153,11 @@ export default function AdminDashboard() {
             <Link href="/">
               <Button variant="outline" size="sm">
                 View Store
+              </Button>
+            </Link>
+            <Link href="/admin/profile">
+              <Button variant="outline" size="sm">
+                Profile
               </Button>
             </Link>
             <Button
