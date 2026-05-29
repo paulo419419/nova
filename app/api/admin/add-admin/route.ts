@@ -60,7 +60,7 @@ export async function POST(request: NextRequest) {
     const { data: newUser, error: createError } = await adminClient.auth.admin.createUser({
       email: newAdminEmail,
       password: newAdminPassword,
-      email_confirm: false,
+      email_confirm: true, // Set to true to auto-confirm
     })
 
     if (createError || !newUser) {
@@ -68,6 +68,15 @@ export async function POST(request: NextRequest) {
         { error: createError?.message || 'Failed to create user' },
         { status: 400 }
       )
+    }
+
+    // Update user to ensure email is marked as confirmed
+    try {
+      await adminClient.auth.admin.updateUserById(newUser.user.id, {
+        email_confirm: true,
+      })
+    } catch (confirmError) {
+      console.log('[v0] Email confirmation update:', confirmError)
     }
 
     // Try to add to admin_users table (table might not exist yet)

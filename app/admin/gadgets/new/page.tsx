@@ -89,6 +89,39 @@ export default function AddGadgetPage() {
     setImagePreviews(prev => prev.filter((_, i) => i !== index))
   }
 
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    e.stopPropagation()
+    e.currentTarget.classList.add('bg-blue-50', 'border-blue-400')
+  }
+
+  const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    e.stopPropagation()
+    e.currentTarget.classList.remove('bg-blue-50', 'border-blue-400')
+  }
+
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    e.stopPropagation()
+    e.currentTarget.classList.remove('bg-blue-50', 'border-blue-400')
+    
+    const files = Array.from(e.dataTransfer.files || []).filter(file => 
+      file.type.startsWith('image/')
+    )
+    
+    if (files.length > 0) {
+      setImageFiles(prev => [...prev, ...files])
+      files.forEach(file => {
+        const reader = new FileReader()
+        reader.onloadend = () => {
+          setImagePreviews(prev => [...prev, reader.result as string])
+        }
+        reader.readAsDataURL(file)
+      })
+    }
+  }
+
   const uploadImages = async (): Promise<string[]> => {
     if (imageFiles.length === 0) return []
 
@@ -273,11 +306,17 @@ export default function AddGadgetPage() {
               )}
 
               {/* Upload Area */}
-              <div className="border-2 border-dashed border-slate-300 rounded-lg p-6 text-center hover:bg-slate-50 transition-colors cursor-pointer active:bg-slate-100">
+              <div 
+                className="border-2 border-dashed border-slate-300 rounded-lg p-8 text-center hover:bg-slate-50 transition-all cursor-pointer active:bg-slate-100"
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+              >
                 <div className="text-slate-600 mb-4">
                   <div className="text-4xl mb-2">📷</div>
-                  <p>Tap or click to select images from your device</p>
-                  <p className="text-xs text-slate-500 mt-1">PNG, JPG, GIF - Multiple images allowed</p>
+                  <p className="font-medium mb-1">Drag and drop images here</p>
+                  <p className="text-sm">or click the button below to select images from your device</p>
+                  <p className="text-xs text-slate-500 mt-2">Supported: PNG, JPG, JPEG, GIF, WebP</p>
                 </div>
                 <input
                   type="file"
@@ -292,8 +331,8 @@ export default function AddGadgetPage() {
                   htmlFor="image-upload"
                   className="inline-block cursor-pointer w-full"
                 >
-                  <Button type="button" variant="outline" className="w-full">
-                    {imageFiles.length > 0 ? 'Add More Images' : 'Choose Images'}
+                  <Button type="button" variant="outline" className="w-full px-6 py-2 font-medium">
+                    {imageFiles.length > 0 ? '+ Add More Images' : '+ Choose Images'}
                   </Button>
                 </label>
               </div>
