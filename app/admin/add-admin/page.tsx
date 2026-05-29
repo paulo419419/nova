@@ -30,16 +30,24 @@ export default function AddAdminPage() {
       return
     }
 
-    // Verify user is admin
-    const { data: adminCheck } = await supabase
-      .from('admin_users')
-      .select('id')
-      .eq('email', user.email)
-      .single()
+    // Verify user is authorized email (main admin)
+    const authorizedEmails = [
+      'juliusokpanachi419@gmail.com',
+      'novacreations111@gmail.com'
+    ]
 
-    if (!adminCheck) {
-      router.push('/admin/dashboard')
-      return
+    if (!authorizedEmails.includes(user.email || '')) {
+      // Try checking admin_users table
+      const { data: adminCheck } = await supabase
+        .from('admin_users')
+        .select('id, is_super_admin')
+        .eq('email', user.email)
+        .single()
+
+      if (!adminCheck || !adminCheck.is_super_admin) {
+        router.push('/admin/dashboard')
+        return
+      }
     }
 
     setIsAuthorized(true)

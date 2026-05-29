@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import { useState } from 'react'
-import { MessageCircle, Music } from 'lucide-react'
+
 import { useStore } from '@/lib/store'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
@@ -89,16 +89,16 @@ export default function Home() {
               href="https://wa.me/2347036947900"
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center justify-center w-10 h-10 md:w-12 md:h-12 rounded-full bg-green-500 hover:bg-green-600 text-white transition-all duration-200 shadow-sm hover:shadow-md transform hover:scale-110"
+              className="flex items-center justify-center w-10 h-10 md:w-12 md:h-12 rounded-full hover:opacity-80 transition-all duration-200 shadow-sm hover:shadow-md transform hover:scale-110"
               title="Message us on WhatsApp"
             >
-              <svg
-                className="w-5 h-5 md:w-6 md:h-6"
-                fill="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.67-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.076 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421-7.403h-.004a9.87 9.87 0 00-4.935 1.205l-.335.203-3.479-.913.928 3.6-.235.374a9.86 9.86 0 001.516 5.394l.087.133a9.85 9.85 0 005.378 2.655l.41.035c.393 0 .77-.025 1.148-.08 1.832-.213 3.522-1.024 4.869-2.33.827-.823 1.538-1.847 2.09-3.03.55-1.18.85-2.47.85-3.81 0-.31-.01-.62-.031-.926A6.975 6.975 0 0012 5.75c-3.872 0-7 3.128-7 7s3.128 7 7 7 7-3.128 7-7-3.128-7-7-7z" />
-              </svg>
+              <Image
+                src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/whatsapp.jfif-410ZamlH1ErwhSzcqfn6CWpkzvYRux.jpeg"
+                alt="WhatsApp"
+                width={40}
+                height={40}
+                className="rounded-full w-10 h-10 md:w-12 md:h-12"
+              />
             </a>
             
             {/* TikTok */}
@@ -106,10 +106,16 @@ export default function Home() {
               href="https://www.tiktok.com/@muhammad.the.edit"
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center justify-center w-10 h-10 md:w-12 md:h-12 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-800 hover:text-blue-600 transition-all duration-200 shadow-sm hover:shadow-md"
+              className="flex items-center justify-center w-10 h-10 md:w-12 md:h-12 rounded-full hover:opacity-80 transition-all duration-200 shadow-sm hover:shadow-md transform hover:scale-110"
               title="Follow us on TikTok"
             >
-              <Music className="w-5 h-5 md:w-6 md:h-6" fill="currentColor" />
+              <Image
+                src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/tk-hFuwZzxa9RjOTY3Zv3sVxooBV9fpkq.png"
+                alt="TikTok"
+                width={40}
+                height={40}
+                className="rounded-full w-10 h-10 md:w-12 md:h-12"
+              />
             </a>
           </div>
         </div>

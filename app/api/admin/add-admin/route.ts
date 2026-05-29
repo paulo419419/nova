@@ -16,24 +16,31 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Check if current user is a SUPER ADMIN (only super admins can create new admins)
-    const adminClient = createAdminClient()
-    const { data: adminCheck, error: adminCheckError } = await adminClient
-      .from('admin_users')
-      .select('id, is_super_admin')
-      .eq('email', user.email)
-      .single()
+    // Check if current user is authorized to create admins
+    const authorizedEmails = [
+      'juliusokpanachi419@gmail.com',
+      'novacreations111@gmail.com'
+    ]
 
-    if (adminCheckError || !adminCheck) {
-      return NextResponse.json(
-        { error: 'Unauthorized - not an admin' },
-        { status: 403 }
-      )
+    const adminClient = createAdminClient()
+    let isAuthorized = authorizedEmails.includes(user.email || '')
+
+    // If not in authorized list, check admin_users table for super admin
+    if (!isAuthorized) {
+      const { data: adminCheck, error: adminCheckError } = await adminClient
+        .from('admin_users')
+        .select('id, is_super_admin')
+        .eq('email', user.email)
+        .single()
+
+      if (!adminCheckError && adminCheck && adminCheck.is_super_admin) {
+        isAuthorized = true
+      }
     }
 
-    if (!adminCheck.is_super_admin) {
+    if (!isAuthorized) {
       return NextResponse.json(
-        { error: 'Forbidden - only super admins can create new admins' },
+        { error: 'Forbidden - only authorized admins can create new admin accounts' },
         { status: 403 }
       )
     }
