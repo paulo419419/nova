@@ -89,6 +89,13 @@ export default function AddGadgetPage() {
     setImagePreviews(prev => prev.filter((_, i) => i !== index))
   }
 
+  const triggerFileInput = () => {
+    const input = document.getElementById('image-upload') as HTMLInputElement
+    if (input) {
+      input.click()
+    }
+  }
+
   const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault()
     e.stopPropagation()
@@ -127,29 +134,43 @@ export default function AddGadgetPage() {
 
     try {
       setUploadingImage(true)
-      const supabase = createClient()
       const uploadedUrls: string[] = []
 
       for (const imageFile of imageFiles) {
-        const fileName = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
-        const { data, error } = await supabase.storage
-          .from('gadget-images')
-          .upload(`public/${fileName}`, imageFile)
+        const formData = new FormData()
+        formData.append('file', imageFile)
 
-        if (error) throw error
+        try {
+          const response = await fetch('/api/upload', {
+            method: 'POST',
+            body: formData,
+          })
 
-        // Get the public URL
-        const {
-          data: { publicUrl },
-        } = supabase.storage.from('gadget-images').getPublicUrl(`public/${fileName}`)
+          if (!response.ok) {
+            const error = await response.json()
+            console.error('[v0] Upload response error:', error)
+            throw new Error(error.error || 'Upload failed')
+          }
 
-        uploadedUrls.push(publicUrl)
+          const data = await response.json()
+          if (data.url) {
+            uploadedUrls.push(data.url)
+          }
+        } catch (uploadErr) {
+          console.error('[v0] Individual file upload error:', uploadErr)
+          // Continue with other files instead of failing completely
+          continue
+        }
+      }
+
+      if (uploadedUrls.length === 0) {
+        throw new Error('No images uploaded successfully')
       }
 
       return uploadedUrls
     } catch (err) {
-      console.error('Image upload error:', err)
-      setError('Failed to upload images')
+      console.error('[v0] Image upload error:', err)
+      setError(`Failed to upload images: ${err instanceof Error ? err.message : 'Unknown error'}`)
       return []
     } finally {
       setUploadingImage(false)
@@ -327,14 +348,14 @@ export default function AddGadgetPage() {
                   multiple
                   aria-label="Upload product images"
                 />
-                <label
-                  htmlFor="image-upload"
-                  className="inline-block cursor-pointer w-full"
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  className="w-full px-6 py-2 font-medium"
+                  onClick={triggerFileInput}
                 >
-                  <Button type="button" variant="outline" className="w-full px-6 py-2 font-medium">
-                    {imageFiles.length > 0 ? '+ Add More Images' : '+ Choose Images'}
-                  </Button>
-                </label>
+                  {imageFiles.length > 0 ? '+ Add More Images' : '+ Choose Images'}
+                </Button>
               </div>
               {imageFiles.length > 0 && (
                 <p className="text-sm text-slate-600 mt-2">
