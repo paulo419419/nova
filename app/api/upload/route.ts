@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { createAdminClient } from '@/lib/supabase/server-admin'
 
 export async function POST(request: NextRequest) {
   try {
@@ -12,66 +11,47 @@ export async function POST(request: NextRequest) {
     }
 
     const supabase = await createClient()
-    const adminClient = createAdminClient()
 
     // Create a unique filename
-    const filename = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}.${file.name.split('.').pop()}`
+    const ext = file.name.split('.').pop() || 'jpg'
+    const filename = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}.${ext}`
     const buffer = await file.arrayBuffer()
 
-    let uploadError = null
-    let uploadData = null
+    console.log('[v0] Uploading file:', filename, 'Size:', buffer.byteLength, 'Type:', file.type)
 
-    // Try to upload to existing bucket
-    const uploadResult = await supabase.storage
+    // Upload directly to gadget-images bucket
+    const { data, error } = await supabase.storage
       .from('gadget-images')
       .upload(filename, buffer, {
         contentType: file.type,
+        cacheControl: '3600',
       })
 
-    uploadError = uploadResult.error
-    uploadData = uploadResult.data
-
-    // If bucket doesn't exist, create it first
-    if (uploadError && uploadError.message?.includes('Bucket not found')) {
-      try {
-        const { data: bucketData, error: bucketError } = await adminClient.storage.createBucket('gadget-images', {
-          public: true,
-        })
-        
-        if (!bucketError || bucketError.message?.includes('already exists')) {
-          // Try upload again
-          const retryResult = await supabase.storage
-            .from('gadget-images')
-            .upload(filename, buffer, {
-              contentType: file.type,
-            })
-          
-          uploadError = retryResult.error
-          uploadData = retryResult.data
-        }
-      } catch (bucketCreateError) {
-        console.error('[v0] Error creating bucket:', bucketCreateError)
-      }
+    if (error) {
+      console.error('[v0] Storage upload error:', error)
+      return NextResponse.json(
+        { error: error.message || 'Upload failed' },
+        { status: 500 }
+      )
     }
 
-    if (uploadError) {
-      console.error('[v0] Upload error:', uploadError)
-      return NextResponse.json({ error: uploadError.message || 'Upload failed' }, { status: 500 })
-    }
+    console.log('[v0] File uploaded successfully:', data)
 
     // Get the public URL
     const { data: publicData } = supabase.storage
       .from('gadget-images')
       .getPublicUrl(filename)
 
+    console.log('[v0] Public URL generated:', publicData.publicUrl)
+
     return NextResponse.json({
       url: publicData.publicUrl,
-      path: uploadData?.path,
+      path: data.path,
     })
   } catch (error) {
-    console.error('[v0] Upload error:', error)
+    console.error('[v0] Upload endpoint error:', error)
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: error instanceof Error ? error.message : 'Internal server error' },
       { status: 500 }
     )
   }
