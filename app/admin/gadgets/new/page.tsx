@@ -89,6 +89,13 @@ export default function AddGadgetPage() {
     setImagePreviews(prev => prev.filter((_, i) => i !== index))
   }
 
+  const triggerFileInput = () => {
+    const input = document.getElementById('image-upload') as HTMLInputElement
+    if (input) {
+      input.click()
+    }
+  }
+
   const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault()
     e.stopPropagation()
@@ -327,14 +334,14 @@ export default function AddGadgetPage() {
                   multiple
                   aria-label="Upload product images"
                 />
-                <label
-                  htmlFor="image-upload"
-                  className="inline-block cursor-pointer w-full"
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  className="w-full px-6 py-2 font-medium"
+                  onClick={triggerFileInput}
                 >
-                  <Button type="button" variant="outline" className="w-full px-6 py-2 font-medium">
-                    {imageFiles.length > 0 ? '+ Add More Images' : '+ Choose Images'}
-                  </Button>
-                </label>
+                  {imageFiles.length > 0 ? '+ Add More Images' : '+ Choose Images'}
+                </Button>
               </div>
               {imageFiles.length > 0 && (
                 <p className="text-sm text-slate-600 mt-2">
