@@ -12,9 +12,10 @@ export async function POST(request: NextRequest) {
 
     console.log('[v0] Uploading file to Vercel Blob:', file.name, 'Size:', file.size, 'Type:', file.type)
 
-    // Upload to Vercel Blob with public access
+    // Upload to Vercel Blob with public access and unique filename
     const blob = await put(file.name, file, {
       access: 'public',
+      addRandomSuffix: true,
     })
 
     console.log('[v0] File uploaded successfully to Blob:', blob.url)
