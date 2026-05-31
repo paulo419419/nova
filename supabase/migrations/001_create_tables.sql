@@ -25,11 +25,12 @@ CREATE TABLE IF NOT EXISTS products (
   graphics VARCHAR(100),
   compatible_software VARCHAR(500),
   price_category VARCHAR(50),
+  device_condition VARCHAR(20) DEFAULT 'new',
   is_in_stock BOOLEAN DEFAULT true,
   specs TEXT,
   budget_tier VARCHAR(50),
   image_url VARCHAR(500),
-  stock_quantity INTEGER DEFAULT 0,
+  stock_quantity INTEGER DEFAULT 1,
   is_featured BOOLEAN DEFAULT false,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
