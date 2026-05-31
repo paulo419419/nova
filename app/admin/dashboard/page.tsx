@@ -69,7 +69,7 @@ export default function AdminDashboard() {
       const supabase = createClient()
       const { data, error } = await supabase
         .from('products')
-        .select('id, name, price, brand, processor, is_featured, image_url')
+        .select('id, name, price, brand, processor, is_featured, image_url, is_in_stock')
         .order('created_at', { ascending: false })
 
       if (error) {

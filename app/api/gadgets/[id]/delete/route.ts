@@ -3,10 +3,11 @@ import { createClient } from '@/lib/supabase/server'
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const supabase = await createClient()
+    const { id } = await params
 
     // Check authentication
     const {
@@ -35,7 +36,7 @@ export async function DELETE(
     const { error: imagesError } = await supabase
       .from('product_images')
       .delete()
-      .eq('product_id', params.id)
+      .eq('product_id', id)
 
     if (imagesError) {
       console.error('[v0] Error deleting product images:', imagesError)
@@ -45,7 +46,7 @@ export async function DELETE(
     const { error } = await supabase
       .from('products')
       .delete()
-      .eq('id', params.id)
+      .eq('id', id)
 
     if (error) {
       console.error('[v0] Error deleting gadget:', error)
