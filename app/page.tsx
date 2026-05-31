@@ -237,6 +237,13 @@ export default function Home() {
                   </p>
                 </div>
               </div>
+              
+              {/* Complaint Link */}
+              <Link href="/complaint" className="block mt-6 pt-6 border-t border-slate-200">
+                <Button variant="outline" className="w-full">
+                  Log a Complaint
+                </Button>
+              </Link>
             </div>
           </Card>
         </div>

@@ -89,6 +89,22 @@ CREATE TABLE IF NOT EXISTS reviews (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Create complaints table
+CREATE TABLE IF NOT EXISTS complaints (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name VARCHAR(255) NOT NULL,
+  email VARCHAR(255) NOT NULL,
+  phone VARCHAR(20),
+  product_id UUID REFERENCES products(id),
+  complaint_type VARCHAR(100),
+  message TEXT NOT NULL,
+  status VARCHAR(50) DEFAULT 'pending',
+  admin_response TEXT,
+  resolved_at TIMESTAMP,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Create indexes for better performance
 CREATE INDEX idx_admin_users_email ON admin_users(email);
 CREATE INDEX idx_products_category ON products(category);
@@ -99,6 +115,9 @@ CREATE INDEX idx_product_images_order ON product_images(product_id, display_orde
 CREATE INDEX idx_inquiries_status ON inquiries(status);
 CREATE INDEX idx_inquiries_created_at ON inquiries(created_at);
 CREATE INDEX idx_reviews_product_id ON reviews(product_id);
+CREATE INDEX idx_complaints_status ON complaints(status);
+CREATE INDEX idx_complaints_email ON complaints(email);
+CREATE INDEX idx_complaints_created_at ON complaints(created_at);
 
 -- Insert sample categories
 INSERT INTO categories (name, description) VALUES

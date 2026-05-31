@@ -21,8 +21,9 @@ export default function EditGadgetPage() {
   const [user, setUser] = useState<any>(null)
   const [loading, setLoading] = useState(false)
   const [authLoading, setAuthLoading] = useState(true)
-  const [imageFile, setImageFile] = useState<File | null>(null)
-  const [imagePreview, setImagePreview] = useState<string>('')
+  const [imageFiles, setImageFiles] = useState<File[]>([])
+  const [imagePreviews, setImagePreviews] = useState<string[]>([])
+  const [existingImages, setExistingImages] = useState<Array<{ url: string; id?: string }>>([])
   const [uploadingImage, setUploadingImage] = useState(false)
   const [error, setError] = useState('')
 
@@ -86,8 +87,21 @@ export default function EditGadgetPage() {
             is_in_stock: data.is_in_stock || true,
             image_url: data.image_url || '',
           })
-          if (data.image_url) {
-            setImagePreview(data.image_url)
+          
+          // Load existing images from product_images table
+          const { data: imagesData } = await supabase
+            .from('product_images')
+            .select('id, image_url')
+            .eq('product_id', params.id)
+            .order('display_order')
+          
+          if (imagesData && imagesData.length > 0) {
+            setExistingImages(imagesData)
+            setImagePreviews(imagesData.map(img => img.image_url))
+          } else if (data.image_url) {
+            // Fallback to old single image_url if no product_images exist
+            setExistingImages([{ url: data.image_url }])
+            setImagePreviews([data.image_url])
           }
         }
       } catch (error) {
@@ -102,39 +116,65 @@ export default function EditGadgetPage() {
   }, [router, params.id])
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (file) {
-      setImageFile(file)
-      const reader = new FileReader()
-      reader.onloadend = () => {
-        setImagePreview(reader.result as string)
-      }
-      reader.readAsDataURL(file)
+    const files = e.target.files
+    if (files) {
+      const newFiles = Array.from(files)
+      setImageFiles((prev) => [...prev, ...newFiles])
+      
+      // Create previews for new files
+      newFiles.forEach((file) => {
+        const reader = new FileReader()
+        reader.onloadend = () => {
+          setImagePreviews((prev) => [...prev, reader.result as string])
+        }
+        reader.readAsDataURL(file)
+      })
     }
   }
 
-  const uploadImage = async (): Promise<string | null> => {
-    if (!imageFile) return formData.image_url
+  const removeExistingImage = (index: number) => {
+    setExistingImages((prev) => prev.filter((_, i) => i !== index))
+    setImagePreviews((prev) => prev.filter((_, i) => i !== index))
+  }
+
+  const removeNewImage = (index: number) => {
+    setImageFiles((prev) => prev.filter((_, i) => i !== index))
+    setImagePreviews((prev) => 
+      prev.filter((_, i) => i !== (existingImages.length + index))
+    )
+  }
+
+  const uploadImages = async (): Promise<string[]> => {
+    const uploadedUrls: string[] = []
 
     try {
       setUploadingImage(true)
-      const supabase = createClient()
-      const fileName = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
-      const { data, error } = await supabase.storage
-        .from('gadget-images')
-        .upload(`public/${fileName}`, imageFile)
 
-      if (error) throw error
+      // Upload new images via Vercel Blob API
+      for (const file of imageFiles) {
+        try {
+          const formData = new FormData()
+          formData.append('file', file)
+          
+          const response = await fetch('/api/upload', {
+            method: 'POST',
+            body: formData,
+          })
 
-      const {
-        data: { publicUrl },
-      } = supabase.storage.from('gadget-images').getPublicUrl(`public/${fileName}`)
+          const data = await response.json()
+          if (data.url) {
+            uploadedUrls.push(data.url)
+          }
+        } catch (err) {
+          console.error('Error uploading individual image:', err)
+        }
+      }
 
-      return publicUrl
+      return uploadedUrls
     } catch (err) {
       console.error('Image upload error:', err)
-      setError('Failed to upload image')
-      return formData.image_url
+      setError('Failed to upload some images')
+      return uploadedUrls
     } finally {
       setUploadingImage(false)
     }
@@ -155,19 +195,13 @@ export default function EditGadgetPage() {
     setLoading(true)
 
     try {
-      // Upload image if provided
-      let imageUrl = formData.image_url
-      if (imageFile) {
-        const url = await uploadImage()
-        if (!url) {
-          setLoading(false)
-          return
-        }
-        imageUrl = url
-      }
-
-      // Update database
       const supabase = createClient()
+      
+      // Upload new images if provided
+      const newImageUrls = await uploadImages()
+      const allImageUrls = [...existingImages.map(img => img.url), ...newImageUrls]
+
+      // Update product
       const { error: dbError } = await supabase
         .from('products')
         .update({
@@ -176,12 +210,32 @@ export default function EditGadgetPage() {
           ram_gb: parseInt(formData.ram_gb),
           storage_gb: formData.storage_gb ? parseInt(formData.storage_gb) : null,
           screen_size: formData.screen_size ? parseFloat(formData.screen_size) : null,
-          image_url: imageUrl,
+          image_url: allImageUrls[0] || formData.image_url,
           updated_at: new Date().toISOString(),
         })
         .eq('id', params.id)
 
       if (dbError) throw dbError
+
+      // Delete old product_images and insert new ones
+      await supabase
+        .from('product_images')
+        .delete()
+        .eq('product_id', params.id)
+
+      if (allImageUrls.length > 0) {
+        const imagesToInsert = allImageUrls.map((url, index) => ({
+          product_id: params.id,
+          image_url: url,
+          display_order: index,
+        }))
+
+        const { error: imagesError } = await supabase
+          .from('product_images')
+          .insert(imagesToInsert)
+
+        if (imagesError) throw imagesError
+      }
 
       router.push('/admin/dashboard')
     } catch (err: any) {
@@ -258,37 +312,63 @@ export default function EditGadgetPage() {
             {/* Image Upload */}
             <div>
               <label className="block text-sm font-semibold text-slate-900 mb-3">
-                Product Image
+                Product Images (Multiple Supported)
               </label>
+              
+              {/* Image Grid */}
+              {imagePreviews.length > 0 && (
+                <div className="mb-6 grid grid-cols-2 md:grid-cols-4 gap-4">
+                  {imagePreviews.map((preview, index) => (
+                    <div key={index} className="relative group">
+                      <div className="relative h-32 w-full bg-slate-100 rounded-lg overflow-hidden">
+                        <Image
+                          src={preview}
+                          alt={`Preview ${index + 1}`}
+                          fill
+                          className="object-contain"
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (index < existingImages.length) {
+                            removeExistingImage(index)
+                          } else {
+                            removeNewImage(index - existingImages.length)
+                          }
+                        }}
+                        className="absolute top-1 right-1 bg-red-600 hover:bg-red-700 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        ✕
+                      </button>
+                      <p className="text-xs text-slate-500 text-center mt-1">
+                        Image {index + 1}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Upload Area */}
               <div className="border-2 border-dashed border-slate-300 rounded-lg p-6 text-center">
-                {imagePreview ? (
-                  <div className="relative h-64 w-full mb-4">
-                    <Image
-                      src={imagePreview}
-                      alt="Preview"
-                      fill
-                      className="object-contain"
-                    />
-                  </div>
-                ) : (
-                  <div className="text-slate-600 mb-4">
-                    <div className="text-4xl mb-2">📷</div>
-                    <p>Drag and drop or click to upload</p>
-                  </div>
-                )}
+                <div className="text-slate-600 mb-4">
+                  <div className="text-4xl mb-2">📷</div>
+                  <p>Drag and drop or click to add more images</p>
+                </div>
                 <input
                   type="file"
                   accept="image/*"
                   onChange={handleImageChange}
                   className="hidden"
                   id="image-upload"
+                  multiple
                 />
                 <label
                   htmlFor="image-upload"
                   className="inline-block cursor-pointer"
                 >
                   <Button type="button" variant="outline">
-                    Change Image
+                    + Add Images
                   </Button>
                 </label>
               </div>
