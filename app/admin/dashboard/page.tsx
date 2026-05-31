@@ -34,7 +34,8 @@ export default function AdminDashboard() {
     totalRevenue: 0,
   })
   const [loading, setLoading] = useState(true)
-  const [tab, setTab] = useState<'overview' | 'gadgets' | 'orders' | 'admins'>('overview')
+  const [tab, setTab] = useState<'overview' | 'gadgets' | 'orders' | 'admins' | 'complaints'>('overview')
+  const [deleting, setDeleting] = useState<string | null>(null)
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -82,6 +83,34 @@ export default function AdminDashboard() {
     } catch (error) {
       console.error('[v0] Error fetching gadgets:', error)
       setGadgets([])
+    }
+  }
+
+  const handleDeleteGadget = async (gadgetId: string) => {
+    if (!window.confirm('Are you sure you want to delete this gadget? This action cannot be undone.')) {
+      return
+    }
+
+    setDeleting(gadgetId)
+    try {
+      const response = await fetch(`/api/gadgets/${gadgetId}/delete`, {
+        method: 'DELETE',
+      })
+
+      if (response.ok) {
+        setGadgets(gadgets.filter((g) => g.id !== gadgetId))
+        setStats((prev) => ({
+          ...prev,
+          totalGadgets: prev.totalGadgets - 1,
+        }))
+      } else {
+        alert('Failed to delete gadget')
+      }
+    } catch (error) {
+      console.error('Error deleting gadget:', error)
+      alert('Error deleting gadget')
+    } finally {
+      setDeleting(null)
     }
   }
 
@@ -199,7 +228,7 @@ export default function AdminDashboard() {
       <div className="max-w-7xl mx-auto px-4 py-8">
         {/* Tabs */}
         <div className="flex gap-2 mb-6 border-b border-slate-200 overflow-x-auto">
-          {(['overview', 'gadgets', 'orders', 'admins'] as const).map((t) => (
+          {(['overview', 'gadgets', 'orders', 'complaints', 'admins'] as const).map((t) => (
             <button
               key={t}
               onClick={() => setTab(t)}
@@ -340,12 +369,21 @@ export default function AdminDashboard() {
                               {gadget.is_in_stock ? 'In Stock' : 'Out of Stock'}
                             </span>
                           </td>
-                          <td className="px-4 py-3 text-sm">
+                          <td className="px-4 py-3 text-sm flex gap-2">
                             <Link href={`/admin/gadgets/${gadget.id}/edit`}>
                               <Button variant="outline" size="sm">
                                 Edit
                               </Button>
                             </Link>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleDeleteGadget(gadget.id)}
+                              disabled={deleting === gadget.id}
+                              className="text-red-600 hover:text-red-700 hover:border-red-300"
+                            >
+                              {deleting === gadget.id ? 'Deleting...' : 'Delete'}
+                            </Button>
                           </td>
                         </tr>
                       ))}
@@ -366,6 +404,27 @@ export default function AdminDashboard() {
             <Card className="p-8 text-center">
               <p className="text-slate-600">
                 Orders management coming soon
+              </p>
+            </Card>
+          </div>
+        )}
+
+        {/* Complaints Tab */}
+        {tab === 'complaints' && (
+          <div>
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-lg font-semibold text-slate-900">
+                Customer Complaints
+              </h2>
+              <Link href="/admin/complaints">
+                <Button className="bg-blue-600 hover:bg-blue-700">
+                  View All Complaints
+                </Button>
+              </Link>
+            </div>
+            <Card className="p-8 text-center">
+              <p className="text-slate-600 mb-4">
+                Click the button above to manage customer complaints and feedback
               </p>
             </Card>
           </div>
