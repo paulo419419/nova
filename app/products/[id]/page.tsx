@@ -179,21 +179,28 @@ export default function ProductDetailPage() {
               </div>
 
               {/* Software Support */}
-              <div className="mb-6">
-                <h3 className="font-semibold text-slate-900 mb-2">
-                  Compatible Software
-                </h3>
-                <div className="flex flex-wrap gap-2">
-                  {gadget.compatible_software?.map((software) => (
-                    <span
-                      key={software}
-                      className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-sm font-medium"
-                    >
-                      {software}
-                    </span>
-                  ))}
+              {gadget.compatible_software && gadget.compatible_software.length > 0 && (
+                <div className="mb-6">
+                  <h3 className="font-semibold text-slate-900 mb-2">
+                    Compatible Software
+                  </h3>
+                  <div className="flex flex-wrap gap-2">
+                    {(Array.isArray(gadget.compatible_software)
+                      ? gadget.compatible_software
+                      : typeof gadget.compatible_software === 'string'
+                      ? gadget.compatible_software.split(',').map((s) => s.trim())
+                      : []
+                    ).map((software) => (
+                      <span
+                        key={software}
+                        className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-sm font-medium"
+                      >
+                        {software}
+                      </span>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* Specifications */}
               <div className="mb-6">
