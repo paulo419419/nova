@@ -102,7 +102,12 @@ export default function CartPage() {
                       </Link>
                       {item.compatibleSoftware && (
                         <div className="flex flex-wrap gap-1 mb-2">
-                          {item.compatibleSoftware.map((software) => (
+                          {(Array.isArray(item.compatibleSoftware)
+                            ? item.compatibleSoftware
+                            : typeof item.compatibleSoftware === 'string'
+                            ? item.compatibleSoftware.split(',').map((s) => s.trim())
+                            : []
+                          ).map((software) => (
                             <span
                               key={software}
                               className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded"
