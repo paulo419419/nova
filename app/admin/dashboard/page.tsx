@@ -114,6 +114,26 @@ export default function AdminDashboard() {
     }
   }
 
+  const handleToggleStock = async (gadgetId: string, currentStock: boolean) => {
+    try {
+      const supabase = createClient()
+      const { error } = await supabase
+        .from('products')
+        .update({ is_in_stock: !currentStock })
+        .eq('id', gadgetId)
+
+      if (error) throw error
+
+      // Update local state
+      setGadgets(gadgets.map((g) =>
+        g.id === gadgetId ? { ...g, is_in_stock: !currentStock } : g
+      ))
+    } catch (error) {
+      console.error('Error updating stock:', error)
+      alert('Failed to update stock status')
+    }
+  }
+
   const fetchStats = async () => {
     try {
       const supabase = createClient()
@@ -359,15 +379,16 @@ export default function AdminDashboard() {
                             ₦{gadget.price.toLocaleString()}
                           </td>
                           <td className="px-4 py-3 text-sm">
-                            <span
-                              className={`px-2 py-1 rounded-full text-xs font-medium ${
+                            <button
+                              onClick={() => handleToggleStock(gadget.id, gadget.is_in_stock)}
+                              className={`px-2 py-1 rounded-full text-xs font-medium transition-all cursor-pointer hover:opacity-80 ${
                                 gadget.is_in_stock
-                                  ? 'bg-green-100 text-green-800'
-                                  : 'bg-red-100 text-red-800'
+                                  ? 'bg-green-100 text-green-800 hover:bg-green-200'
+                                  : 'bg-red-100 text-red-800 hover:bg-red-200'
                               }`}
                             >
                               {gadget.is_in_stock ? 'In Stock' : 'Out of Stock'}
-                            </span>
+                            </button>
                           </td>
                           <td className="px-4 py-3 text-sm flex gap-2">
                             <Link href={`/admin/gadgets/${gadget.id}/edit`}>

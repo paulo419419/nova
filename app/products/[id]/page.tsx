@@ -29,11 +29,12 @@ interface Gadget {
 
 export default function ProductDetailPage() {
   const params = useParams()
-  const { addToCart } = useStore()
+  const { addToCart, cart } = useStore()
   const [gadget, setGadget] = useState<Gadget | null>(null)
   const [loading, setLoading] = useState(true)
   const [quantity, setQuantity] = useState(1)
   const [addedToCart, setAddedToCart] = useState(false)
+  const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0)
 
   useEffect(() => {
     const fetchGadget = async () => {
@@ -119,8 +120,13 @@ export default function ProductDetailPage() {
           </Link>
           <div className="flex items-center gap-3">
             <Link href="/cart">
-              <Button variant="outline" size="sm">
+              <Button variant="outline" size="sm" className="relative">
                 Cart
+                {cartCount > 0 && (
+                  <span className="absolute -top-2 -right-2 bg-blue-600 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
+                    {cartCount}
+                  </span>
+                )}
               </Button>
             </Link>
           </div>
@@ -281,12 +287,20 @@ export default function ProductDetailPage() {
                 <Button
                   onClick={handleAddToCart}
                   disabled={!gadget.is_in_stock}
-                  className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3"
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 transition-all"
                 >
                   {addedToCart
                     ? '✓ Added to Cart'
                     : 'Add to Cart'}
                 </Button>
+
+                {addedToCart && (
+                  <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-lg">
+                    <p className="text-green-700 text-sm font-medium text-center">
+                      ✓ Product added! ({cartCount} {cartCount === 1 ? 'item' : 'items'} in cart)
+                    </p>
+                  </div>
+                )}
 
                 {addedToCart && (
                   <Link href="/cart" className="w-full mt-2">
