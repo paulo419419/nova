@@ -39,6 +39,7 @@ export default function AddGadgetPage() {
     graphics: '',
     compatible_software: [] as string[],
     price_category: '200k',
+    device_condition: 'new',
     is_in_stock: true,
   })
 
@@ -438,27 +439,49 @@ export default function AddGadgetPage() {
               </select>
             </div>
 
-            {/* Price Category */}
-            <div>
-              <label className="block text-sm font-medium text-slate-900 mb-2">
-                Price Category *
-              </label>
-              <select
-                value={formData.price_category}
-                onChange={(e) =>
-                  setFormData((p) => ({
-                    ...p,
-                    price_category: e.target.value,
-                  }))
-                }
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                {PRICE_CATEGORIES.map((cat) => (
-                  <option key={cat} value={cat}>
-                    {cat === 'above' ? 'Above ₦300,000' : `₦${cat.replace('k', ',000')}`}
-                  </option>
-                ))}
-              </select>
+            {/* Price Category and Device Condition */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-900 mb-2">
+                  Price Category *
+                </label>
+                <select
+                  value={formData.price_category}
+                  onChange={(e) =>
+                    setFormData((p) => ({
+                      ...p,
+                      price_category: e.target.value,
+                    }))
+                  }
+                  className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  {PRICE_CATEGORIES.map((cat) => (
+                    <option key={cat} value={cat}>
+                      {cat === 'above' ? 'Above ₦300,000' : `₦${cat.replace('k', ',000')}`}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-900 mb-2">
+                  Device Condition *
+                </label>
+                <select
+                  value={formData.device_condition}
+                  onChange={(e) =>
+                    setFormData((p) => ({
+                      ...p,
+                      device_condition: e.target.value,
+                    }))
+                  }
+                  className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="new">New</option>
+                  <option value="used">Used</option>
+                  <option value="refurbished">Refurbished</option>
+                </select>
+              </div>
             </div>
 
             {/* Hardware Selection */}

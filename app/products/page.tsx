@@ -20,7 +20,9 @@ interface Gadget {
   ram_gb: number
   compatible_software: string[]
   price_category: string
+  device_condition?: string
   is_in_stock: boolean
+  category: string
 }
 
 export default function ProductsPage() {
@@ -29,6 +31,7 @@ export default function ProductsPage() {
   const [filteredGadgets, setFilteredGadgets] = useState<Gadget[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
+  const [selectedPriceCategory, setSelectedPriceCategory] = useState<string | null>(null)
 
   useEffect(() => {
     const fetchGadgets = async () => {
@@ -56,14 +59,16 @@ export default function ProductsPage() {
   useEffect(() => {
     let filtered = [...gadgets]
 
-    // Filter by price category
-    if (questionnaire.budget) {
-      filtered = filtered.filter((g) => g.price_category === questionnaire.budget)
+    // Filter by product category (e.g., Laptop, Mobile Phone, Tablet)
+    if (selectedCategory) {
+      filtered = filtered.filter((g) => g.category === selectedCategory)
     }
 
-    // Filter by selected category
-    if (selectedCategory) {
-      filtered = filtered.filter((g) => g.price_category === selectedCategory)
+    // Filter by price category
+    if (selectedPriceCategory) {
+      filtered = filtered.filter((g) => g.price_category === selectedPriceCategory)
+    } else if (questionnaire.budget) {
+      filtered = filtered.filter((g) => g.price_category === questionnaire.budget)
     }
 
     // Filter by software compatibility
@@ -74,15 +79,21 @@ export default function ProductsPage() {
         davinci_resolve: 'DaVinci Resolve',
       }
       const softwareName = softwareMap[questionnaire.softwareChoice]
-      filtered = filtered.filter((g) =>
-        g.compatible_software?.some((s) =>
+      filtered = filtered.filter((g) => {
+        if (!g.compatible_software) return false
+        const softwareList = Array.isArray(g.compatible_software)
+          ? g.compatible_software
+          : typeof g.compatible_software === 'string'
+          ? g.compatible_software.split(',').map((s) => s.trim())
+          : []
+        return softwareList.some((s) =>
           s.toLowerCase().includes(softwareName.toLowerCase())
         )
-      )
+      })
     }
 
     setFilteredGadgets(filtered)
-  }, [gadgets, questionnaire, selectedCategory])
+  }, [gadgets, questionnaire, selectedCategory, selectedPriceCategory])
 
   const categories = [
     { value: '100k', label: '₦100,000' },
@@ -131,31 +142,61 @@ export default function ProductsPage() {
 
       <div className="max-w-6xl mx-auto px-4 py-6 md:py-8">
         {/* Filters Section */}
-        <div className="mb-8">
-          <h2 className="text-lg font-semibold text-slate-900 mb-3">
-            Filter by Price Category
-          </h2>
-          <div className="flex flex-wrap gap-2">
-            {categories.map((cat) => (
-              <button
-                key={cat.value}
-                onClick={() =>
-                  setSelectedCategory(
-                    selectedCategory === cat.value ? null : cat.value
-                  )
-                }
-                className={`px-4 py-2 rounded-lg font-medium transition-all ${
-                  selectedCategory === cat.value
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-white text-slate-700 border border-slate-200 hover:border-blue-400'
-                }`}
-              >
-                {cat.label}
-              </button>
-            ))}
+        <div className="mb-8 space-y-4">
+          {/* Product Categories */}
+          <div>
+            <h2 className="text-lg font-semibold text-slate-900 mb-3">
+              Product Categories
+            </h2>
+            <div className="flex flex-wrap gap-2">
+              {['Laptop', 'Mobile Phone', 'AirPods', 'Tablet', 'Monitor', 'Keyboard', 'Mouse', 'External SSD'].map((cat) => (
+                <button
+                  key={cat}
+                  onClick={() =>
+                    setSelectedCategory(
+                      selectedCategory === cat ? null : cat
+                    )
+                  }
+                  className={`px-4 py-2 rounded-lg font-medium transition-all ${
+                    selectedCategory === cat
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-white text-slate-700 border border-slate-200 hover:border-blue-400'
+                  }`}
+                >
+                  {cat}
+                </button>
+              ))}
+            </div>
           </div>
+
+          {/* Price Categories */}
+          <div>
+            <h2 className="text-lg font-semibold text-slate-900 mb-3">
+              Price Range
+            </h2>
+            <div className="flex flex-wrap gap-2">
+              {categories.map((cat) => (
+                <button
+                  key={cat.value}
+                  onClick={() =>
+                    setSelectedPriceCategory(
+                      selectedPriceCategory === cat.value ? null : cat.value
+                    )
+                  }
+                  className={`px-4 py-2 rounded-lg font-medium transition-all ${
+                    selectedPriceCategory === cat.value
+                      ? 'bg-green-600 text-white'
+                      : 'bg-white text-slate-700 border border-slate-200 hover:border-green-400'
+                  }`}
+                >
+                  {cat.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
           {questionnaire.answered && (
-            <p className="text-sm text-slate-600 mt-3">
+            <p className="text-sm text-slate-600">
               Showing devices with{' '}
               <strong>{questionnaire.softwareChoice}</strong> support
             </p>
@@ -208,9 +249,20 @@ export default function ProductsPage() {
                 {/* Content */}
                 <div className="p-4 flex-1 flex flex-col">
                   <div className="mb-3">
-                    <h3 className="font-semibold text-slate-900 text-sm mb-1 line-clamp-2">
-                      {gadget.name}
-                    </h3>
+                    <div className="flex items-start justify-between gap-2 mb-1">
+                      <h3 className="font-semibold text-slate-900 text-sm line-clamp-2 flex-1">
+                        {gadget.name}
+                      </h3>
+                      <span className={`text-xs font-semibold px-2 py-1 rounded whitespace-nowrap ${
+                        gadget.device_condition === 'new'
+                          ? 'bg-green-100 text-green-700'
+                          : gadget.device_condition === 'used'
+                          ? 'bg-amber-100 text-amber-700'
+                          : 'bg-blue-100 text-blue-700'
+                      }`}>
+                        {gadget.device_condition || 'New'}
+                      </span>
+                    </div>
                     <p className="text-xs text-slate-600">
                       {gadget.brand} • {gadget.processor}{' '}
                       {gadget.processor_generation}
@@ -220,22 +272,38 @@ export default function ProductsPage() {
                   {/* Specs */}
                   <div className="bg-slate-50 p-3 rounded-lg mb-3 text-xs text-slate-700">
                     <div>RAM: {gadget.ram_gb}GB</div>
-                    <div className="flex flex-wrap gap-1 mt-2">
-                      {gadget.compatible_software?.map((software) => (
-                        <span
-                          key={software}
-                          className="bg-blue-100 text-blue-700 px-2 py-1 rounded"
-                        >
-                          {software}
-                        </span>
-                      ))}
-                    </div>
+                    {gadget.compatible_software && (
+                      <div className="flex flex-wrap gap-1 mt-2">
+                        {(Array.isArray(gadget.compatible_software)
+                          ? gadget.compatible_software
+                          : typeof gadget.compatible_software === 'string'
+                          ? gadget.compatible_software.split(',').map((s) => s.trim())
+                          : []
+                        ).map((software) => (
+                          <span
+                            key={software}
+                            className="bg-blue-100 text-blue-700 px-2 py-1 rounded"
+                          >
+                            {software}
+                          </span>
+                        ))}
+                      </div>
+                    )}
                   </div>
 
-                  {/* Price */}
+                  {/* Price & Stock */}
                   <div className="mt-auto">
-                    <div className="text-2xl font-bold text-blue-600 mb-3">
-                      ₦{gadget.price.toLocaleString()}
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="text-2xl font-bold text-blue-600">
+                        ₦{gadget.price.toLocaleString()}
+                      </div>
+                      <span className={`text-xs font-semibold px-2 py-1 rounded ${
+                        gadget.is_in_stock
+                          ? 'bg-green-100 text-green-700'
+                          : 'bg-red-100 text-red-700'
+                      }`}>
+                        {gadget.is_in_stock ? 'In Stock' : 'Out of Stock'}
+                      </span>
                     </div>
 
                     {/* Buttons */}
@@ -252,9 +320,10 @@ export default function ProductsPage() {
                       <Button
                         size="sm"
                         onClick={() => handleAddToCart(gadget)}
-                        className="flex-1 bg-blue-600 hover:bg-blue-700"
+                        disabled={!gadget.is_in_stock}
+                        className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        Add to Cart
+                        {gadget.is_in_stock ? 'Add to Cart' : 'Out of Stock'}
                       </Button>
                     </div>
                   </div>
