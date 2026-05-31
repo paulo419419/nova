@@ -148,11 +148,12 @@ export default function Home() {
                 {budgetOptions.map((option) => (
                   <button
                     key={option.value}
+                    type="button"
                     onClick={() => setSelectedBudget(option.value)}
-                    className={`p-3 rounded-lg border-2 font-medium transition-all ${
+                    className={`p-3 rounded-lg border-2 font-medium transition-all cursor-pointer active:scale-95 ${
                       selectedBudget === option.value
                         ? 'border-blue-500 bg-blue-50 text-blue-900'
-                        : 'border-slate-200 bg-white text-slate-700 hover:border-blue-300'
+                        : 'border-slate-200 bg-white text-slate-700 hover:border-blue-300 hover:bg-slate-50'
                     }`}
                   >
                     {option.label}
@@ -170,11 +171,12 @@ export default function Home() {
                 {softwareOptions.map((option) => (
                   <button
                     key={option.value}
+                    type="button"
                     onClick={() => setSelectedSoftware(option.value)}
-                    className={`w-full p-4 rounded-lg border-2 text-left transition-all ${
+                    className={`w-full p-4 rounded-lg border-2 text-left transition-all cursor-pointer active:scale-95 ${
                       selectedSoftware === option.value
                         ? 'border-blue-500 bg-blue-50'
-                        : `border-slate-200 bg-white hover:border-blue-300 ${option.color}`
+                        : `border-slate-200 bg-white hover:border-blue-300 hover:bg-slate-50 ${option.color}`
                     }`}
                   >
                     <div className="font-semibold text-slate-900">

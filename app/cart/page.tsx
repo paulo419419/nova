@@ -16,8 +16,10 @@ export default function CartPage() {
   }, [])
 
   const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0)
-  const tax = subtotal * 0.075 // 7.5% tax
-  const total = subtotal + tax
+  const shippingBase = 1500 // Base shipping fee ₦1,500
+  const shippingPerItem = 500 // Additional ₦500 per item
+  const shippingCost = shippingBase + (cart.length * shippingPerItem)
+  const total = subtotal + shippingCost
 
   if (!mounted) {
     return (
@@ -173,8 +175,11 @@ export default function CartPage() {
                     <span>₦{subtotal.toLocaleString()}</span>
                   </div>
                   <div className="flex justify-between text-slate-700">
-                    <span>Tax (7.5%)</span>
-                    <span>₦{tax.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
+                    <span>Shipping</span>
+                    <span>₦{shippingCost.toLocaleString()}</span>
+                  </div>
+                  <div className="text-xs text-slate-500">
+                    ({shippingBase.toLocaleString()} base + ₦{shippingPerItem} per item)
                   </div>
                 </div>
 

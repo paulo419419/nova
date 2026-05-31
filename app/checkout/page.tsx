@@ -15,6 +15,15 @@ declare global {
   }
 }
 
+const NIGERIAN_STATES = [
+  'Select a state',
+  'Abia', 'Adamawa', 'Akwa Ibom', 'Anambra', 'Bauchi', 'Bayelsa', 'Benue',
+  'Borno', 'Cross River', 'Delta', 'Ebonyi', 'Edo', 'Ekiti', 'Enugu',
+  'Gombe', 'Imo', 'Jigawa', 'Kaduna', 'Kano', 'Katsina', 'Kebbi', 'Kogi',
+  'Kwara', 'Lagos', 'Nasarawa', 'Niger', 'Ogun', 'Ondo', 'Osun', 'Oyo',
+  'Plateau', 'Rivers', 'Sokoto', 'Taraba', 'Yobe', 'Zamfara', 'FCT'
+]
+
 export default function CheckoutPage() {
   const router = useRouter()
   const { cart, questionnaire, clearCart } = useStore()
@@ -24,9 +33,14 @@ export default function CheckoutPage() {
   const [error, setError] = useState('')
 
   const [formData, setFormData] = useState({
-    name: '',
+    firstName: '',
+    lastName: '',
     email: '',
     phone: '',
+    address: '',
+    city: '',
+    state: 'Select a state',
+    postalCode: '',
   })
 
   useEffect(() => {
@@ -70,12 +84,14 @@ export default function CheckoutPage() {
   }
 
   const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0)
-  const tax = subtotal * 0.075
-  const total = subtotal + tax
+  const shippingBase = 1500 // Base shipping fee ₦1,500
+  const shippingPerItem = 500 // Additional ₦500 per item
+  const shippingCost = shippingBase + (cart.length * shippingPerItem)
+  const total = subtotal + shippingCost
 
   const handlePaystackPayment = async () => {
-    if (!formData.name || !formData.email || !formData.phone) {
-      setError('Please fill in all customer details')
+    if (!formData.firstName || !formData.lastName || !formData.email || !formData.phone || !formData.address || formData.state === 'Select a state') {
+      setError('Please fill in all required delivery information')
       return
     }
 
@@ -90,11 +106,15 @@ export default function CheckoutPage() {
         .insert([
           {
             gadget_id: cart[0].id, // For multi-item carts, you'd need to handle this differently
-            customer_name: formData.name,
+            customer_name: `${formData.firstName} ${formData.lastName}`,
             customer_email: formData.email,
             customer_phone: formData.phone,
+            customer_address: formData.address,
+            customer_city: formData.city,
+            customer_state: formData.state,
             quantity: cart.reduce((sum, item) => sum + item.quantity, 0),
             total_price: total,
+            shipping_cost: shippingCost,
             payment_method: 'paystack',
             payment_status: 'pending',
             questionnaire_data: questionnaire,
@@ -150,8 +170,8 @@ export default function CheckoutPage() {
   }
 
   const handleWhatsAppPayment = async () => {
-    if (!formData.name || !formData.email || !formData.phone) {
-      setError('Please fill in all customer details')
+    if (!formData.firstName || !formData.lastName || !formData.email || !formData.phone || !formData.address || formData.state === 'Select a state') {
+      setError('Please fill in all required delivery information')
       return
     }
 
@@ -167,11 +187,15 @@ export default function CheckoutPage() {
         .insert([
           {
             gadget_id: cart[0].id,
-            customer_name: formData.name,
+            customer_name: `${formData.firstName} ${formData.lastName}`,
             customer_email: formData.email,
             customer_phone: formData.phone,
+            customer_address: formData.address,
+            customer_city: formData.city,
+            customer_state: formData.state,
             quantity: cart.reduce((sum, item) => sum + item.quantity, 0),
             total_price: total,
+            shipping_cost: shippingCost,
             payment_method: 'whatsapp',
             payment_status: 'pending',
             questionnaire_data: questionnaire,
@@ -235,52 +259,140 @@ Phone: ${formData.phone}`
               </h2>
 
               <div className="space-y-4">
+                {/* Name Fields */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-900 mb-2">
+                      First Name *
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.firstName}
+                      onChange={(e) =>
+                        setFormData((p) => ({ ...p, firstName: e.target.value }))
+                      }
+                      placeholder="John"
+                      className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-900 mb-2">
+                      Last Name *
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.lastName}
+                      onChange={(e) =>
+                        setFormData((p) => ({ ...p, lastName: e.target.value }))
+                      }
+                      placeholder="Doe"
+                      className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      required
+                    />
+                  </div>
+                </div>
+
+                {/* Contact Info */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-900 mb-2">
+                      Email Address *
+                    </label>
+                    <input
+                      type="email"
+                      value={formData.email}
+                      onChange={(e) =>
+                        setFormData((p) => ({ ...p, email: e.target.value }))
+                      }
+                      placeholder="john@example.com"
+                      className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-900 mb-2">
+                      Phone Number *
+                    </label>
+                    <input
+                      type="tel"
+                      value={formData.phone}
+                      onChange={(e) =>
+                        setFormData((p) => ({ ...p, phone: e.target.value }))
+                      }
+                      placeholder="+234 803 XXX XXXX"
+                      className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      required
+                    />
+                  </div>
+                </div>
+
+                {/* Address */}
                 <div>
                   <label className="block text-sm font-medium text-slate-900 mb-2">
-                    Full Name *
+                    Street Address *
                   </label>
                   <input
                     type="text"
-                    value={formData.name}
+                    value={formData.address}
                     onChange={(e) =>
-                      setFormData((p) => ({ ...p, name: e.target.value }))
+                      setFormData((p) => ({ ...p, address: e.target.value }))
                     }
-                    placeholder="John Doe"
+                    placeholder="123 Main Street"
                     className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                     required
                   />
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-slate-900 mb-2">
-                    Email Address *
-                  </label>
-                  <input
-                    type="email"
-                    value={formData.email}
-                    onChange={(e) =>
-                      setFormData((p) => ({ ...p, email: e.target.value }))
-                    }
-                    placeholder="john@example.com"
-                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-slate-900 mb-2">
-                    Phone Number *
-                  </label>
-                  <input
-                    type="tel"
-                    value={formData.phone}
-                    onChange={(e) =>
-                      setFormData((p) => ({ ...p, phone: e.target.value }))
-                    }
-                    placeholder="+234 803 XXX XXXX"
-                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    required
-                  />
+                {/* City, State, Postal Code */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-900 mb-2">
+                      City
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.city}
+                      onChange={(e) =>
+                        setFormData((p) => ({ ...p, city: e.target.value }))
+                      }
+                      placeholder="Lagos"
+                      className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-900 mb-2">
+                      State *
+                    </label>
+                    <select
+                      value={formData.state}
+                      onChange={(e) =>
+                        setFormData((p) => ({ ...p, state: e.target.value }))
+                      }
+                      className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      required
+                    >
+                      {NIGERIAN_STATES.map((state) => (
+                        <option key={state} value={state}>
+                          {state}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-900 mb-2">
+                      Postal Code
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.postalCode}
+                      onChange={(e) =>
+                        setFormData((p) => ({ ...p, postalCode: e.target.value }))
+                      }
+                      placeholder="100001"
+                      className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
                 </div>
               </div>
             </Card>
@@ -400,8 +512,11 @@ Phone: ${formData.phone}`
                   <span>₦{subtotal.toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between text-slate-700">
-                  <span>Tax (7.5%)</span>
-                  <span>₦{tax.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
+                  <span>Shipping</span>
+                  <span>₦{shippingCost.toLocaleString()}</span>
+                </div>
+                <div className="text-xs text-slate-500 mt-1">
+                  ({shippingBase.toLocaleString()} base + ₦{shippingPerItem} per item)
                 </div>
               </div>
 
