@@ -15,11 +15,15 @@ export default function CartPage() {
     setMounted(true)
   }, [])
 
-  const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0)
+  const subtotal = cart.reduce((sum, item) => {
+    const itemPrice = parseFloat(String(item.price || 0))
+    const itemQty = parseInt(String(item.quantity || 1))
+    return sum + (itemPrice * itemQty)
+  }, 0)
   const shippingBase = 1500 // Base shipping fee ₦1,500
   const shippingPerItem = 500 // Additional ₦500 per item
   const shippingCost = shippingBase + (cart.length * shippingPerItem)
-  const total = subtotal + shippingCost
+  const total = Math.max(0, subtotal + shippingCost)
 
   if (!mounted) {
     return (
