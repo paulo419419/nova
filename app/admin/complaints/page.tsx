@@ -17,6 +17,7 @@ interface Complaint {
   message: string
   status: string
   admin_response?: string
+  is_read: boolean
   created_at: string
   product_name?: string
 }
@@ -91,6 +92,27 @@ export default function ComplaintsPage() {
       }
     } catch (error) {
       console.error('Error updating status:', error)
+    }
+  }
+
+  const markAsRead = async (complaintId: string) => {
+    try {
+      const supabase = createClient()
+      const { error } = await supabase
+        .from('complaints')
+        .update({ is_read: true })
+        .eq('id', complaintId)
+
+      if (!error) {
+        setComplaints(complaints.map(c => 
+          c.id === complaintId ? { ...c, is_read: true } : c
+        ))
+        if (selectedComplaint?.id === complaintId) {
+          setSelectedComplaint({ ...selectedComplaint, is_read: true })
+        }
+      }
+    } catch (error) {
+      console.error('Error marking as read:', error)
     }
   }
 
@@ -193,12 +215,20 @@ export default function ComplaintsPage() {
                       selectedComplaint?.id === complaint.id
                         ? 'border-blue-500 border-2'
                         : 'border-slate-200'
-                    }`}
-                    onClick={() => setSelectedComplaint(complaint)}
+                    } ${!complaint.is_read ? 'bg-blue-50' : ''}`}
+                    onClick={() => {
+                      setSelectedComplaint(complaint)
+                      if (!complaint.is_read) markAsRead(complaint.id)
+                    }}
                   >
                     <div className="flex items-start justify-between mb-2">
                       <div className="flex-1">
-                        <h3 className="font-semibold text-slate-900">{complaint.name}</h3>
+                        <div className="flex items-center gap-2">
+                          <h3 className="font-semibold text-slate-900">{complaint.name}</h3>
+                          {!complaint.is_read && (
+                            <span className="bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">NEW</span>
+                          )}
+                        </div>
                         <p className="text-sm text-slate-600">{complaint.email}</p>
                       </div>
                       <span className={`px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap ml-2 ${

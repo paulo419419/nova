@@ -34,6 +34,7 @@ export default function ProductDetailPage() {
   const [loading, setLoading] = useState(true)
   const [quantity, setQuantity] = useState(1)
   const [addedToCart, setAddedToCart] = useState(false)
+  const [showToast, setShowToast] = useState(false)
   const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0)
 
   useEffect(() => {
@@ -62,17 +63,16 @@ export default function ProductDetailPage() {
 
   const handleAddToCart = () => {
     if (gadget) {
-      addToCart({
-        id: gadget.id,
-        name: gadget.name,
-        price: gadget.price,
-        quantity,
-        image_url: gadget.image_url,
-        compatibleSoftware: gadget.compatible_software,
-      })
+      addToCart(gadget, quantity)
       setAddedToCart(true)
-      setTimeout(() => setAddedToCart(false), 2000)
+      setShowToast(true)
+      
+      // Auto-hide toast after 3 seconds
+      setTimeout(() => {
+        setShowToast(false)
+      }, 3000)
     }
+  }
   }
 
   if (loading) {
@@ -103,6 +103,17 @@ export default function ProductDetailPage() {
 
   return (
     <main className="min-h-screen bg-slate-50">
+      {/* Toast Notification */}
+      {showToast && (
+        <div className="fixed bottom-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg flex items-center gap-3 z-50 animate-pulse">
+          <span className="text-xl">✓</span>
+          <div>
+            <p className="font-semibold">Added to Cart!</p>
+            <p className="text-sm opacity-90">{quantity} item(s) added</p>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <header className="bg-white border-b border-slate-200 sticky top-0 z-40 py-4 px-4 md:px-6">
         <div className="max-w-6xl mx-auto flex items-center justify-between gap-4">

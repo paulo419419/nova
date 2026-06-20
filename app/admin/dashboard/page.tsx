@@ -246,6 +246,16 @@ export default function AdminDashboard() {
       </header>
 
       <div className="max-w-7xl mx-auto px-4 py-8">
+        {/* Quick Links */}
+        <div className="mb-6 flex gap-3 justify-end flex-wrap">
+          <Link href="/admin/orders">
+            <Button variant="outline">Order Management</Button>
+          </Link>
+          <Link href="/admin/settings">
+            <Button variant="outline">Settings & Configuration</Button>
+          </Link>
+        </div>
+
         {/* Tabs */}
         <div className="flex gap-2 mb-6 border-b border-slate-200 overflow-x-auto">
           {(['overview', 'gadgets', 'orders', 'complaints', 'admins'] as const).map((t) => (
