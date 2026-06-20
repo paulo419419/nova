@@ -63,7 +63,14 @@ export default function ProductDetailPage() {
 
   const handleAddToCart = () => {
     if (gadget) {
-      addToCart(gadget, quantity)
+      addToCart({
+        id: gadget.id,
+        name: gadget.name,
+        price: gadget.price,
+        quantity,
+        image_url: gadget.image_url,
+        compatibleSoftware: gadget.compatible_software
+      })
       setAddedToCart(true)
       setShowToast(true)
       
