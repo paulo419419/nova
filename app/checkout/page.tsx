@@ -148,6 +148,39 @@ export default function CheckoutPage() {
 
               if (updateError) throw updateError
 
+              // Send confirmation email
+              const estimatedDelivery = new Date()
+              estimatedDelivery.setDate(estimatedDelivery.getDate() + 5)
+
+              try {
+                await fetch('/api/send-confirmation-email', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    orderNumber: orderData[0].id.slice(0, 8).toUpperCase(),
+                    customerName: `${formData.firstName} ${formData.lastName}`,
+                    customerEmail: formData.email,
+                    items: cart.map(item => ({
+                      name: item.name,
+                      quantity: item.quantity,
+                      price: item.price
+                    })),
+                    subtotal,
+                    shippingCost,
+                    total,
+                    deliveryAddress: formData.address,
+                    state: formData.state,
+                    estimatedDelivery: estimatedDelivery.toLocaleDateString('en-US', {
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric'
+                    })
+                  })
+                })
+              } catch (emailError) {
+                console.error('[v0] Failed to send confirmation email:', emailError)
+              }
+
               // Redirect to success page
               clearCart()
               router.push(`/checkout/success?order=${orderData[0].id}`)
@@ -205,6 +238,39 @@ export default function CheckoutPage() {
 
       if (orderError) throw orderError
 
+      // Send confirmation email
+      const estimatedDelivery = new Date()
+      estimatedDelivery.setDate(estimatedDelivery.getDate() + 7)
+
+      try {
+        await fetch('/api/send-confirmation-email', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            orderNumber: orderData[0].id.slice(0, 8).toUpperCase(),
+            customerName: `${formData.firstName} ${formData.lastName}`,
+            customerEmail: formData.email,
+            items: cart.map(item => ({
+              name: item.name,
+              quantity: item.quantity,
+              price: item.price
+            })),
+            subtotal,
+            shippingCost,
+            total,
+            deliveryAddress: formData.address,
+            state: formData.state,
+            estimatedDelivery: estimatedDelivery.toLocaleDateString('en-US', {
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric'
+            })
+          })
+        })
+      } catch (emailError) {
+        console.error('[v0] Failed to send confirmation email:', emailError)
+      }
+
       // Redirect to WhatsApp
       const message = `Hi, I would like to purchase the following items:
 ${cart.map((item) => `- ${item.name} x${item.quantity}: ₦${(item.price * item.quantity).toLocaleString()}`).join('\n')}
@@ -212,7 +278,7 @@ ${cart.map((item) => `- ${item.name} x${item.quantity}: ₦${(item.price * item.
 Total: ₦${total.toLocaleString(undefined, { maximumFractionDigits: 0 })}
 
 Order ID: ${orderData[0].id}
-Customer: ${formData.name}
+Customer: ${formData.firstName} ${formData.lastName}
 Phone: ${formData.phone}`
 
       const whatsappUrl = `https://wa.me/2347036947900?text=${encodeURIComponent(message)}`
