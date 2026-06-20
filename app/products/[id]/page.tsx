@@ -35,7 +35,9 @@ export default function ProductDetailPage() {
   const [quantity, setQuantity] = useState(1)
   const [addedToCart, setAddedToCart] = useState(false)
   const [showToast, setShowToast] = useState(false)
-  const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0)
+  const [productImages, setProductImages] = useState<string[]>([])
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0)
+  const cartCount = cart.reduce((sum, item) => sum + (item.quantity || 0), 0)
 
   useEffect(() => {
     const fetchGadget = async () => {
@@ -44,11 +46,26 @@ export default function ProductDetailPage() {
         const { data, error } = await supabase
           .from('products')
           .select('*')
-          .eq('id', params.id)
+          .eq('id', params.id as string)
           .single()
 
         if (error) throw error
         setGadget(data)
+
+        // Fetch all product images
+        const { data: images, error: imagesError } = await supabase
+          .from('product_images')
+          .select('image_url')
+          .eq('product_id', params.id as string)
+          .order('created_at', { ascending: true })
+
+        if (!imagesError && images && images.length > 0) {
+          const imageUrls = images.map((img: any) => img.image_url)
+          setProductImages(imageUrls)
+        } else if (data?.image_url) {
+          // Fallback to main image if no product_images records
+          setProductImages([data.image_url])
+        }
       } catch (error) {
         console.error('Error fetching gadget:', error)
       } finally {
@@ -56,14 +73,19 @@ export default function ProductDetailPage() {
       }
     }
 
-    if (params.id) {
-      fetchGadget()
-    }
+    fetchGadget()
   }, [params.id])
 
   const handleAddToCart = () => {
     if (gadget) {
-      addToCart(gadget, quantity)
+      addToCart({
+        id: gadget.id,
+        name: gadget.name,
+        price: gadget.price,
+        quantity,
+        image_url: gadget.image_url,
+        compatibleSoftware: gadget.compatible_software
+      })
       setAddedToCart(true)
       setShowToast(true)
       
@@ -153,18 +175,45 @@ export default function ProductDetailPage() {
 
         <Card className="overflow-hidden">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-6 md:p-8">
-            {/* Image */}
-            <div className="relative h-96 bg-slate-200 rounded-lg overflow-hidden">
-              {gadget.image_url ? (
-                <Image
-                  src={gadget.image_url}
-                  alt={gadget.name}
-                  fill
-                  className="object-cover"
-                />
-              ) : (
-                <div className="flex items-center justify-center h-full text-slate-400">
-                  No image available
+            {/* Image Gallery */}
+            <div className="space-y-4">
+              {/* Main Image */}
+              <div className="relative h-96 bg-slate-200 rounded-lg overflow-hidden">
+                {productImages.length > 0 ? (
+                  <Image
+                    src={productImages[selectedImageIndex]}
+                    alt={gadget.name}
+                    fill
+                    className="object-cover"
+                  />
+                ) : (
+                  <div className="flex items-center justify-center h-full text-slate-400">
+                    No image available
+                  </div>
+                )}
+              </div>
+
+              {/* Thumbnail Gallery */}
+              {productImages.length > 1 && (
+                <div className="flex gap-2 overflow-x-auto pb-2">
+                  {productImages.map((img, index) => (
+                    <button
+                      key={index}
+                      onClick={() => setSelectedImageIndex(index)}
+                      className={`relative h-20 w-20 rounded-lg overflow-hidden flex-shrink-0 border-2 transition-all ${
+                        selectedImageIndex === index
+                          ? 'border-blue-600'
+                          : 'border-slate-300 hover:border-slate-400'
+                      }`}
+                    >
+                      <Image
+                        src={img}
+                        alt={`${gadget.name} view ${index + 1}`}
+                        fill
+                        className="object-cover"
+                      />
+                    </button>
+                  ))}
                 </div>
               )}
             </div>

@@ -1,19 +1,35 @@
 import { NextRequest, NextResponse } from 'next/server'
 import nodemailer from 'nodemailer'
-
-const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST || 'smtp.gmail.com',
-  port: parseInt(process.env.SMTP_PORT || '587'),
-  secure: process.env.SMTP_SECURE === 'true',
-  auth: {
-    user: process.env.SMTP_USER || process.env.COMPANY_EMAIL,
-    pass: process.env.SMTP_PASSWORD,
-  },
-})
+import { createClient } from '@/lib/supabase/client'
 
 export async function POST(request: NextRequest) {
   try {
     const { customerName, customerEmail, orderNumber, items, subtotal, shippingCost, total, deliveryAddress, state, estimatedDelivery } = await request.json()
+    
+    // Fetch email settings from database
+    const supabase = createClient()
+    const { data: emailSettings } = await supabase
+      .from('admin_settings')
+      .select('*')
+      .eq('setting_key', 'email_config')
+      .single()
+
+    const emailConfig = emailSettings ? JSON.parse(emailSettings.setting_value || '{}') : {
+      gmailAddress: process.env.GMAIL_ADDRESS,
+      gmailAppPassword: process.env.GMAIL_APP_PASSWORD,
+      senderName: 'NOVA GADGETS'
+    }
+
+    // Create transporter with settings from database
+    const transporter = nodemailer.createTransport({
+      host: 'smtp.gmail.com',
+      port: 587,
+      secure: false,
+      auth: {
+        user: emailConfig.gmailAddress,
+        pass: emailConfig.gmailAppPassword,
+      },
+    })
 
     if (!customerEmail) {
       return NextResponse.json(
@@ -187,7 +203,7 @@ export async function POST(request: NextRequest) {
     `
 
     const result = await transporter.sendMail({
-      from: process.env.COMPANY_EMAIL || 'noreply@novagadgets.com',
+      from: `${emailConfig.senderName} <${emailConfig.gmailAddress}>`,
       to: customerEmail,
       subject: `Order Confirmation - Order #${orderNumber}`,
       html: htmlContent,

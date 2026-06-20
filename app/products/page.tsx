@@ -32,6 +32,8 @@ export default function ProductsPage() {
   const [loading, setLoading] = useState(true)
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
   const [selectedPriceCategory, setSelectedPriceCategory] = useState<string | null>(null)
+  const [showToast, setShowToast] = useState(false)
+  const [toastMessage, setToastMessage] = useState('')
 
   useEffect(() => {
     const fetchGadgets = async () => {
@@ -111,10 +113,23 @@ export default function ProductsPage() {
       image_url: gadget.image_url,
       compatibleSoftware: gadget.compatible_software,
     })
+    setToastMessage(`${gadget.name} added to cart!`)
+    setShowToast(true)
+    setTimeout(() => {
+      setShowToast(false)
+    }, 3000)
   }
 
   return (
     <main className="min-h-screen bg-slate-50">
+      {/* Toast Notification */}
+      {showToast && (
+        <div className="fixed bottom-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg flex items-center gap-3 z-50 animate-pulse">
+          <span className="text-xl">✓</span>
+          <p className="font-semibold">{toastMessage}</p>
+        </div>
+      )}
+
       {/* Header */}
       <header className="bg-white border-b border-slate-200 sticky top-0 z-40 py-4 px-4 md:px-6">
         <div className="max-w-6xl mx-auto flex items-center justify-between gap-4">
