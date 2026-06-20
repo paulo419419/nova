@@ -73,7 +73,6 @@ export default function ProductDetailPage() {
       }, 3000)
     }
   }
-  }
 
   if (loading) {
     return (
