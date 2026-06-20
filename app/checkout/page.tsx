@@ -31,6 +31,7 @@ export default function CheckoutPage() {
   const [paymentMethod, setPaymentMethod] = useState<'paystack' | 'whatsapp' | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [tablesReady, setTablesReady] = useState(true)
 
   const [formData, setFormData] = useState({
     firstName: '',
@@ -51,6 +52,24 @@ export default function CheckoutPage() {
     script.src = 'https://js.paystack.co/v1/inline.js'
     script.async = true
     document.body.appendChild(script)
+
+    // Ensure database tables exist
+    const ensureTables = async () => {
+      try {
+        const response = await fetch('/api/admin/ensure-tables', {
+          method: 'POST'
+        })
+        const data = await response.json()
+        if (data.ordersTableReady) {
+          setTablesReady(true)
+        }
+      } catch (err) {
+        console.error('Tables check failed:', err)
+        setTablesReady(false)
+      }
+    }
+
+    ensureTables()
 
     return () => {
       document.body.removeChild(script)
@@ -83,11 +102,15 @@ export default function CheckoutPage() {
     )
   }
 
-  const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0)
+  const subtotal = cart.reduce((sum, item) => {
+    const itemPrice = parseFloat(String(item.price || 0))
+    const itemQty = parseInt(String(item.quantity || 1))
+    return sum + (itemPrice * itemQty)
+  }, 0)
   const shippingBase = 1500 // Base shipping fee ₦1,500
   const shippingPerItem = 500 // Additional ₦500 per item
   const shippingCost = shippingBase + (cart.length * shippingPerItem)
-  const total = subtotal + shippingCost
+  const total = Math.max(0, subtotal + shippingCost)
 
   const handlePaystackPayment = async () => {
     if (!formData.firstName || !formData.lastName || !formData.email || !formData.phone || !formData.address || formData.state === 'Select a state') {
@@ -122,7 +145,15 @@ export default function CheckoutPage() {
         ])
         .select()
 
-      if (orderError) throw orderError
+      if (orderError) {
+        // Check if it's a table not found error
+        if (orderError.message?.includes('orders') || orderError.message?.includes('schema cache')) {
+          setError('Order system is initializing. Please try again in a moment.')
+          setLoading(false)
+          return
+        }
+        throw orderError
+      }
 
       // Initialize Paystack payment
       if (window.PaystackPop) {
