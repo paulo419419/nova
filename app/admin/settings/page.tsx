@@ -98,8 +98,8 @@ export default function AdminSettingsPage() {
           const payStackConfig = JSON.parse(paystackData.setting_value || '{}')
           setApiSettings(prev => ({
             ...prev,
-            paystack_public: payStackConfig.publicKey || '',
-            paystack_secret: payStackConfig.secretKey || ''
+            paystackPublicKey: payStackConfig.publicKey || '',
+            paystackSecretKey: payStackConfig.secretKey || ''
           }))
         } catch (e) {
           console.error('Error parsing Paystack config:', e)
@@ -185,41 +185,51 @@ export default function AdminSettingsPage() {
         .upsert({
           setting_key: 'paystack_config',
           setting_value: JSON.stringify({
-            publicKey: apiSettings.paystack_public || '',
-            secretKey: apiSettings.paystack_secret || ''
-          }),
-          updated_at: new Date().toISOString()
+            publicKey: apiSettings.paystackPublicKey || '',
+            secretKey: apiSettings.paystackSecretKey || ''
+          })
+        }, {
+          onConflict: 'setting_key'
         })
-        .eq('setting_key', 'paystack_config')
 
       if (paystackError) throw paystackError
-
-      // Save Email settings
-      const { error: emailError } = await supabase
-        .from('admin_settings')
-        .upsert({
-          setting_key: 'email_config',
-          setting_value: JSON.stringify({
-            gmailAddress: apiSettings.gmail_address || '',
-            gmailAppPassword: apiSettings.gmail_password || '',
-            senderName: 'NOVA GADGETS'
-          }),
-          updated_at: new Date().toISOString()
-        })
-        .eq('setting_key', 'email_config')
-
-      if (emailError) throw emailError
 
       setMessage('API settings saved successfully!')
       setTimeout(() => setMessage(''), 3000)
       
       // Refresh to show saved values
-      await loadApiSettings()
+      await loadSettings()
     } catch (err) {
       console.error('Error saving API settings:', err)
       setError('Failed to save API settings. Check permissions.')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const loadApiSettings = async () => {
+    try {
+      const supabase = createClient()
+      const { data: paystackData } = await supabase
+        .from('admin_settings')
+        .select('*')
+        .eq('setting_key', 'paystack_config')
+        .single()
+
+      if (paystackData) {
+        try {
+          const config = JSON.parse(paystackData.setting_value || '{}')
+          setApiSettings(prev => ({
+            ...prev,
+            paystackPublicKey: config.publicKey || '',
+            paystackSecretKey: config.secretKey || ''
+          }))
+        } catch (e) {
+          console.error('Error parsing Paystack config:', e)
+        }
+      }
+    } catch (err) {
+      console.error('Error loading API settings:', err)
     }
   }
 
@@ -455,7 +465,7 @@ export default function AdminSettingsPage() {
             <div className="mb-8 pb-8 border-b border-slate-200">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-md font-semibold text-slate-900">Paystack Configuration</h3>
-                {apiSettings.paystack_public && (
+                {apiSettings.paystackPublicKey && (
                   <span className="flex items-center gap-2 text-sm text-green-700 bg-green-50 px-3 py-1 rounded-full">
                     <span className="w-2 h-2 bg-green-600 rounded-full"></span>
                     Configured
@@ -467,8 +477,8 @@ export default function AdminSettingsPage() {
                   <label className="block text-sm font-medium text-slate-900 mb-2">Paystack Public Key</label>
                   <input
                     type="text"
-                    value={apiSettings.paystack_public || ''}
-                    onChange={(e) => setApiSettings(prev => ({ ...prev, paystack_public: e.target.value }))}
+                    value={apiSettings.paystackPublicKey || ''}
+                    onChange={(e) => setApiSettings(prev => ({ ...prev, paystackPublicKey: e.target.value }))}
                     placeholder="pk_live_..."
                     className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
                   />
@@ -478,8 +488,8 @@ export default function AdminSettingsPage() {
                   <label className="block text-sm font-medium text-slate-900 mb-2">Paystack Secret Key</label>
                   <input
                     type="password"
-                    value={apiSettings.paystack_secret || ''}
-                    onChange={(e) => setApiSettings(prev => ({ ...prev, paystack_secret: e.target.value }))}
+                    value={apiSettings.paystackSecretKey || ''}
+                    onChange={(e) => setApiSettings(prev => ({ ...prev, paystackSecretKey: e.target.value }))}
                     placeholder="sk_live_..."
                     className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
                   />
