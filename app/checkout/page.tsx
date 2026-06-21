@@ -128,12 +128,12 @@ export default function CheckoutPage() {
         .from('orders')
         .insert([
           {
-            gadget_id: cart[0].id, // For multi-item carts, you'd need to handle this differently
+            gadget_id: cart[0].id,
             customer_name: `${formData.firstName} ${formData.lastName}`,
             customer_email: formData.email,
             customer_phone: formData.phone,
             customer_address: formData.address,
-            delivery_city: formData.city,
+            customer_city: formData.city,
             customer_state: formData.state,
             quantity: cart.reduce((sum, item) => sum + item.quantity, 0),
             total_price: total,
@@ -155,10 +155,33 @@ export default function CheckoutPage() {
         throw orderError
       }
 
+      // Get Paystack key from admin settings
+      const { data: paystackConfig } = await supabase
+        .from('admin_settings')
+        .select('setting_value')
+        .eq('setting_key', 'paystack_config')
+        .single()
+
+      let paystackPublicKey = ''
+      if (paystackConfig) {
+        try {
+          const config = JSON.parse(paystackConfig.setting_value)
+          paystackPublicKey = config.publicKey || ''
+        } catch (e) {
+          console.error('Error parsing Paystack config:', e)
+        }
+      }
+
+      if (!paystackPublicKey) {
+        setError('Paystack is not configured. Please contact support.')
+        setLoading(false)
+        return
+      }
+
       // Initialize Paystack payment
       if (window.PaystackPop) {
         const handler = window.PaystackPop.setup({
-          key: process.env.NEXT_PUBLIC_PAYSTACK_KEY || '',
+          key: paystackPublicKey,
           email: formData.email,
           amount: Math.round(total * 100), // Convert to kobo
           ref: `NOVA-${Date.now()}`,
@@ -255,7 +278,7 @@ export default function CheckoutPage() {
             customer_email: formData.email,
             customer_phone: formData.phone,
             customer_address: formData.address,
-            delivery_city: formData.city,
+            customer_city: formData.city,
             customer_state: formData.state,
             quantity: cart.reduce((sum, item) => sum + item.quantity, 0),
             total_price: total,
