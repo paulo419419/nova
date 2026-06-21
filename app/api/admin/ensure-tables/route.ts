@@ -14,33 +14,33 @@ export async function POST(request: NextRequest) {
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
-    // Create orders table with raw SQL
+    // Create orders table with raw SQL - matching migration 005_update_device_conditions.sql
     const ordersSql = `
       CREATE TABLE IF NOT EXISTS public.orders (
-        id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+        gadget_id uuid REFERENCES public.products(id),
         customer_name VARCHAR(255) NOT NULL,
         customer_email VARCHAR(255) NOT NULL,
-        customer_phone VARCHAR(20) NOT NULL,
-        delivery_address TEXT NOT NULL,
-        city VARCHAR(100),
-        state VARCHAR(100),
-        postal_code VARCHAR(20),
-        items JSONB NOT NULL,
-        subtotal NUMERIC(10, 2) NOT NULL,
-        shipping_cost NUMERIC(10, 2) NOT NULL,
-        total NUMERIC(10, 2) NOT NULL,
+        customer_phone VARCHAR(20),
+        customer_address VARCHAR(500),
+        customer_city VARCHAR(100),
+        customer_state VARCHAR(100),
+        quantity INTEGER NOT NULL DEFAULT 1,
+        total_price DECIMAL(12,2) NOT NULL,
+        shipping_cost DECIMAL(10,2),
         payment_method VARCHAR(50),
         payment_status VARCHAR(50) DEFAULT 'pending',
-        paystack_reference VARCHAR(255),
-        order_status VARCHAR(50) DEFAULT 'processing',
-        notes TEXT,
-        created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()),
-        updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
+        order_status VARCHAR(50) DEFAULT 'pending',
+        order_notes TEXT,
+        questionnaire_data JSONB,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
       
-      CREATE INDEX IF NOT EXISTS idx_orders_email ON public.orders(customer_email);
       CREATE INDEX IF NOT EXISTS idx_orders_status ON public.orders(order_status);
-      CREATE INDEX IF NOT EXISTS idx_orders_created ON public.orders(created_at);
+      CREATE INDEX IF NOT EXISTS idx_orders_payment_status ON public.orders(payment_status);
+      CREATE INDEX IF NOT EXISTS idx_orders_customer_email ON public.orders(customer_email);
+      CREATE INDEX IF NOT EXISTS idx_orders_created_at ON public.orders(created_at);
     `
 
     const adminSettingsSql = `

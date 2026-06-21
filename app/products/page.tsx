@@ -249,6 +249,23 @@ export default function ProductsPage() {
             </div>
           </div>
 
+          {/* Clear All Filters Button */}
+          {(selectedCategory || selectedPriceCategory || selectedCondition) && (
+            <div>
+              <Button
+                onClick={() => {
+                  setSelectedCategory(null)
+                  setSelectedPriceCategory(null)
+                  setSelectedCondition(null)
+                }}
+                variant="destructive"
+                className="w-full"
+              >
+                Clear All Filters
+              </Button>
+            </div>
+          )}
+
           {questionnaire.answered && (
             <p className="text-sm text-slate-600">
               Showing devices with{' '}
@@ -271,7 +288,11 @@ export default function ProductsPage() {
               Try adjusting your filters or browse all categories
             </p>
             <Button
-              onClick={() => setSelectedCategory(null)}
+              onClick={() => {
+                setSelectedCategory(null)
+                setSelectedPriceCategory(null)
+                setSelectedCondition(null)
+              }}
               variant="outline"
             >
               Clear Filters
