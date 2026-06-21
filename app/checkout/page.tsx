@@ -8,6 +8,7 @@ import { useStore } from '@/lib/store'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { createClient } from '@/lib/supabase/client'
+import { formatOrderNumber } from '@/lib/order-utils'
 
 declare global {
   interface Window {
@@ -180,11 +181,12 @@ export default function CheckoutPage() {
 
       // Initialize Paystack payment
       if (window.PaystackPop) {
+        const shortOrderNumber = formatOrderNumber(orderData[0].id)
         const handler = window.PaystackPop.setup({
           key: paystackPublicKey,
           email: formData.email,
           amount: Math.round(total * 100), // Convert to kobo
-          ref: `NOVA-${Date.now()}`,
+          ref: shortOrderNumber,
           onClose: () => {
             setLoading(false)
             setError('Payment cancelled')
@@ -211,7 +213,7 @@ export default function CheckoutPage() {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({
-                    orderNumber: orderData[0].id.slice(0, 8).toUpperCase(),
+                    orderNumber: formatOrderNumber(orderData[0].id),
                     customerName: `${formData.firstName} ${formData.lastName}`,
                     customerEmail: formData.email,
                     items: cart.map(item => ({
@@ -301,7 +303,7 @@ export default function CheckoutPage() {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            orderNumber: orderData[0].id.slice(0, 8).toUpperCase(),
+            orderNumber: formatOrderNumber(orderData[0].id),
             customerName: `${formData.firstName} ${formData.lastName}`,
             customerEmail: formData.email,
             items: cart.map(item => ({
@@ -326,12 +328,13 @@ export default function CheckoutPage() {
       }
 
       // Redirect to WhatsApp
+      const shortOrderNumber = formatOrderNumber(orderData[0].id)
       const message = `Hi, I would like to purchase the following items:
 ${cart.map((item) => `- ${item.name} x${item.quantity}: ₦${(item.price * item.quantity).toLocaleString()}`).join('\n')}
 
 Total: ₦${total.toLocaleString(undefined, { maximumFractionDigits: 0 })}
 
-Order ID: ${orderData[0].id}
+Order #${shortOrderNumber}
 Customer: ${formData.firstName} ${formData.lastName}
 Phone: ${formData.phone}`
 
