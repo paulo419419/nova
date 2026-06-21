@@ -86,18 +86,43 @@ export default function AdminSettingsPage() {
         setEmailSettings(prev => ({ ...prev, ...settings }))
       }
 
-      // Load API settings
-      const { data: apiData } = await supabase
+      // Load API settings - Paystack and Gmail
+      const { data: paystackData } = await supabase
         .from('admin_settings')
         .select('*')
-        .in('setting_key', ['paystackPublicKey', 'paystackSecretKey', 'whatsappNumber'])
+        .eq('setting_key', 'paystack_config')
+        .single()
 
-      if (apiData) {
-        const settings: any = {}
-        apiData.forEach(row => {
-          settings[row.setting_key] = row.setting_value
-        })
-        setApiSettings(prev => ({ ...prev, ...settings }))
+      if (paystackData) {
+        try {
+          const payStackConfig = JSON.parse(paystackData.setting_value || '{}')
+          setApiSettings(prev => ({
+            ...prev,
+            paystack_public: payStackConfig.publicKey || '',
+            paystack_secret: payStackConfig.secretKey || ''
+          }))
+        } catch (e) {
+          console.error('Error parsing Paystack config:', e)
+        }
+      }
+
+      const { data: gmailData } = await supabase
+        .from('admin_settings')
+        .select('*')
+        .eq('setting_key', 'email_config')
+        .single()
+
+      if (gmailData) {
+        try {
+          const emailConfig = JSON.parse(gmailData.setting_value || '{}')
+          setApiSettings(prev => ({
+            ...prev,
+            gmail_address: emailConfig.gmailAddress || '',
+            gmail_password: emailConfig.gmailAppPassword || ''
+          }))
+        } catch (e) {
+          console.error('Error parsing email config:', e)
+        }
       }
 
       // Load brands
@@ -153,17 +178,46 @@ export default function AdminSettingsPage() {
     setLoading(true)
     try {
       const supabase = createClient()
-      for (const [key, value] of Object.entries(apiSettings)) {
-        await supabase.from('admin_settings').upsert({
-          setting_key: key,
-          setting_value: String(value),
-          description: `API ${key}`,
+      
+      // Save Paystack settings
+      const { error: paystackError } = await supabase
+        .from('admin_settings')
+        .upsert({
+          setting_key: 'paystack_config',
+          setting_value: JSON.stringify({
+            publicKey: apiSettings.paystack_public || '',
+            secretKey: apiSettings.paystack_secret || ''
+          }),
+          updated_at: new Date().toISOString()
         })
-      }
-      setMessage('API settings saved successfully')
+        .eq('setting_key', 'paystack_config')
+
+      if (paystackError) throw paystackError
+
+      // Save Email settings
+      const { error: emailError } = await supabase
+        .from('admin_settings')
+        .upsert({
+          setting_key: 'email_config',
+          setting_value: JSON.stringify({
+            gmailAddress: apiSettings.gmail_address || '',
+            gmailAppPassword: apiSettings.gmail_password || '',
+            senderName: 'NOVA GADGETS'
+          }),
+          updated_at: new Date().toISOString()
+        })
+        .eq('setting_key', 'email_config')
+
+      if (emailError) throw emailError
+
+      setMessage('API settings saved successfully!')
       setTimeout(() => setMessage(''), 3000)
+      
+      // Refresh to show saved values
+      await loadApiSettings()
     } catch (err) {
-      setError('Failed to save API settings')
+      console.error('Error saving API settings:', err)
+      setError('Failed to save API settings. Check permissions.')
     } finally {
       setLoading(false)
     }
@@ -396,44 +450,86 @@ export default function AdminSettingsPage() {
         {activeTab === 'api' && (
           <Card className="p-6">
             <h2 className="text-lg font-semibold text-slate-900 mb-6">API Configuration</h2>
-            <div className="space-y-4 mb-6">
-              <div>
-                <label className="block text-sm font-medium text-slate-900 mb-2">Paystack Public Key</label>
-                <input
-                  type="text"
-                  value={apiSettings.paystackPublicKey}
-                  onChange={(e) => setApiSettings(prev => ({ ...prev, paystackPublicKey: e.target.value }))}
-                  placeholder="pk_live_..."
-                  className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
-                />
+            
+            {/* Paystack Config */}
+            <div className="mb-8 pb-8 border-b border-slate-200">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-md font-semibold text-slate-900">Paystack Configuration</h3>
+                {apiSettings.paystack_public && (
+                  <span className="flex items-center gap-2 text-sm text-green-700 bg-green-50 px-3 py-1 rounded-full">
+                    <span className="w-2 h-2 bg-green-600 rounded-full"></span>
+                    Configured
+                  </span>
+                )}
               </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-900 mb-2">Paystack Secret Key</label>
-                <input
-                  type="password"
-                  value={apiSettings.paystackSecretKey}
-                  onChange={(e) => setApiSettings(prev => ({ ...prev, paystackSecretKey: e.target.value }))}
-                  placeholder="sk_live_..."
-                  className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-900 mb-2">WhatsApp Number</label>
-                <input
-                  type="text"
-                  value={apiSettings.whatsappNumber}
-                  onChange={(e) => setApiSettings(prev => ({ ...prev, whatsappNumber: e.target.value }))}
-                  placeholder="+234 803 XXX XXXX"
-                  className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-900 mb-2">Paystack Public Key</label>
+                  <input
+                    type="text"
+                    value={apiSettings.paystack_public || ''}
+                    onChange={(e) => setApiSettings(prev => ({ ...prev, paystack_public: e.target.value }))}
+                    placeholder="pk_live_..."
+                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
+                  />
+                  <p className="text-xs text-slate-500 mt-1">Get from: https://dashboard.paystack.com/settings/developer</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-900 mb-2">Paystack Secret Key</label>
+                  <input
+                    type="password"
+                    value={apiSettings.paystack_secret || ''}
+                    onChange={(e) => setApiSettings(prev => ({ ...prev, paystack_secret: e.target.value }))}
+                    placeholder="sk_live_..."
+                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
+                  />
+                </div>
               </div>
             </div>
+
+            {/* Gmail Config */}
+            <div className="mb-8">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-md font-semibold text-slate-900">Gmail Configuration</h3>
+                {apiSettings.gmail_address && (
+                  <span className="flex items-center gap-2 text-sm text-green-700 bg-green-50 px-3 py-1 rounded-full">
+                    <span className="w-2 h-2 bg-green-600 rounded-full"></span>
+                    Configured
+                  </span>
+                )}
+              </div>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-900 mb-2">Gmail Address</label>
+                  <input
+                    type="email"
+                    value={apiSettings.gmail_address || ''}
+                    onChange={(e) => setApiSettings(prev => ({ ...prev, gmail_address: e.target.value }))}
+                    placeholder="your@gmail.com"
+                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                  <p className="text-xs text-slate-500 mt-1">Your Gmail address for sending order confirmations</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-900 mb-2">Gmail App Password</label>
+                  <input
+                    type="password"
+                    value={apiSettings.gmail_password || ''}
+                    onChange={(e) => setApiSettings(prev => ({ ...prev, gmail_password: e.target.value }))}
+                    placeholder="xxxx xxxx xxxx xxxx"
+                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
+                  />
+                  <p className="text-xs text-slate-500 mt-1">Generate at: https://myaccount.google.com/apppasswords</p>
+                </div>
+              </div>
+            </div>
+
             <Button
               onClick={saveApiSettings}
               disabled={loading}
               className="bg-blue-600 hover:bg-blue-700"
             >
-              {loading ? 'Saving...' : 'Save API Settings'}
+              {loading ? 'Saving...' : 'Save All Settings'}
             </Button>
           </Card>
         )}

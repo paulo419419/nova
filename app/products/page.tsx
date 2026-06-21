@@ -26,14 +26,17 @@ interface Gadget {
 }
 
 export default function ProductsPage() {
-  const { questionnaire, addToCart } = useStore()
+  const { questionnaire, addToCart, cart } = useStore()
   const [gadgets, setGadgets] = useState<Gadget[]>([])
   const [filteredGadgets, setFilteredGadgets] = useState<Gadget[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
   const [selectedPriceCategory, setSelectedPriceCategory] = useState<string | null>(null)
+  const [selectedCondition, setSelectedCondition] = useState<string | null>(null)
   const [showToast, setShowToast] = useState(false)
   const [toastMessage, setToastMessage] = useState('')
+  
+  const cartCount = cart.reduce((sum, item) => sum + (item.quantity || 0), 0)
 
   useEffect(() => {
     const fetchGadgets = async () => {
@@ -94,8 +97,13 @@ export default function ProductsPage() {
       })
     }
 
+    // Filter by device condition (New/Used)
+    if (selectedCondition) {
+      filtered = filtered.filter((g) => g.device_condition === selectedCondition)
+    }
+
     setFilteredGadgets(filtered)
-  }, [gadgets, questionnaire, selectedCategory, selectedPriceCategory])
+  }, [gadgets, questionnaire, selectedCategory, selectedPriceCategory, selectedCondition])
 
   const categories = [
     { value: '100k', label: '₦100,000' },
@@ -146,10 +154,15 @@ export default function ProductsPage() {
             </span>
           </Link>
           <div className="flex items-center gap-3">
-            <Link href="/cart">
+            <Link href="/cart" className="relative">
               <Button variant="outline" size="sm">
                 Cart
               </Button>
+              {cartCount > 0 && (
+                <span className="absolute -top-2 -right-2 bg-red-600 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
+                  {cartCount}
+                </span>
+              )}
             </Link>
           </div>
         </div>
@@ -205,6 +218,32 @@ export default function ProductsPage() {
                   }`}
                 >
                   {cat.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Device Condition */}
+          <div>
+            <h2 className="text-lg font-semibold text-slate-900 mb-3">
+              Device Condition
+            </h2>
+            <div className="flex flex-wrap gap-2">
+              {['New', 'Used'].map((condition) => (
+                <button
+                  key={condition}
+                  onClick={() =>
+                    setSelectedCondition(
+                      selectedCondition === condition ? null : condition
+                    )
+                  }
+                  className={`px-4 py-2 rounded-lg font-medium transition-all ${
+                    selectedCondition === condition
+                      ? 'bg-purple-600 text-white'
+                      : 'bg-white text-slate-700 border border-slate-200 hover:border-purple-400'
+                  }`}
+                >
+                  {condition}
                 </button>
               ))}
             </div>
