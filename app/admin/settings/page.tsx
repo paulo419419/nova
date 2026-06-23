@@ -59,6 +59,10 @@ export default function AdminSettingsPage() {
 
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
+  const [configStatus, setConfigStatus] = useState({
+    paystack: { configured: false, timestamp: '' },
+    gmail: { configured: false, timestamp: '' },
+  })
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -98,10 +102,18 @@ export default function AdminSettingsPage() {
       if (paystackData) {
         try {
           const payStackConfig = JSON.parse(paystackData.setting_value || '{}')
+          const isConfigured = !!(payStackConfig.publicKey && payStackConfig.secretKey)
           setApiSettings(prev => ({
             ...prev,
             paystackPublicKey: payStackConfig.publicKey || '',
             paystackSecretKey: payStackConfig.secretKey || ''
+          }))
+          setConfigStatus(prev => ({
+            ...prev,
+            paystack: { 
+              configured: isConfigured,
+              timestamp: paystackData.updated_at || paystackData.created_at || new Date().toISOString()
+            }
           }))
         } catch (e) {
           console.error('Error parsing Paystack config:', e)
@@ -111,19 +123,27 @@ export default function AdminSettingsPage() {
       const { data: gmailData } = await supabase
         .from('admin_settings')
         .select('*')
-        .eq('setting_key', 'email_config')
+        .eq('setting_key', 'gmail_config')
         .single()
 
       if (gmailData) {
         try {
           const emailConfig = JSON.parse(gmailData.setting_value || '{}')
+          const isConfigured = !!(emailConfig.address && emailConfig.password)
           setApiSettings(prev => ({
             ...prev,
-            gmail_address: emailConfig.gmailAddress || '',
-            gmail_password: emailConfig.gmailAppPassword || ''
+            gmail_address: emailConfig.address || '',
+            gmail_password: emailConfig.password || ''
+          }))
+          setConfigStatus(prev => ({
+            ...prev,
+            gmail: { 
+              configured: isConfigured,
+              timestamp: gmailData.updated_at || gmailData.created_at || new Date().toISOString()
+            }
           }))
         } catch (e) {
-          console.error('Error parsing email config:', e)
+          console.error('Error parsing Gmail config:', e)
         }
       }
 
@@ -210,6 +230,16 @@ export default function AdminSettingsPage() {
         throw new Error(data.error || 'Failed to save Paystack settings')
       }
 
+      // Update Paystack status on success
+      const paystackConfigured = !!(apiSettings.paystackPublicKey && apiSettings.paystackSecretKey)
+      setConfigStatus(prev => ({
+        ...prev,
+        paystack: { 
+          configured: paystackConfigured,
+          timestamp: new Date().toISOString()
+        }
+      }))
+
       // Save Gmail settings via API
       const gmailRes = await fetch('/api/admin/settings', {
         method: 'POST',
@@ -228,6 +258,16 @@ export default function AdminSettingsPage() {
         const data = await gmailRes.json()
         throw new Error(data.error || 'Failed to save Gmail settings')
       }
+
+      // Update Gmail status on success
+      const gmailConfigured = !!(apiSettings.gmail_address && apiSettings.gmail_password)
+      setConfigStatus(prev => ({
+        ...prev,
+        gmail: { 
+          configured: gmailConfigured,
+          timestamp: new Date().toISOString()
+        }
+      }))
 
       setMessage('API settings saved successfully!')
       setTimeout(() => setMessage(''), 3000)
@@ -522,13 +562,37 @@ export default function AdminSettingsPage() {
             <div className="mb-8 pb-8 border-b border-slate-200">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-md font-semibold text-slate-900">Paystack Configuration</h3>
-                {apiSettings.paystackPublicKey && (
+                {configStatus.paystack.configured ? (
                   <span className="flex items-center gap-2 text-sm text-green-700 bg-green-50 px-3 py-1 rounded-full">
                     <span className="w-2 h-2 bg-green-600 rounded-full"></span>
                     Configured
                   </span>
+                ) : (
+                  <span className="flex items-center gap-2 text-sm text-slate-500 bg-slate-100 px-3 py-1 rounded-full">
+                    <span className="w-2 h-2 bg-slate-400 rounded-full"></span>
+                    Not Configured
+                  </span>
                 )}
               </div>
+
+              {/* Configuration Log */}
+              {configStatus.paystack.timestamp && (
+                <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                  <p className="text-xs text-blue-700">
+                    <span className="font-semibold">
+                      {configStatus.paystack.configured ? '✓ Last Updated' : '○ Never Configured'}:
+                    </span>
+                    {' '}
+                    {new Date(configStatus.paystack.timestamp).toLocaleString()}
+                  </p>
+                  {configStatus.paystack.configured && (
+                    <p className="text-xs text-blue-600 mt-1">
+                      Paystack is active and ready to process payments
+                    </p>
+                  )}
+                </div>
+              )}
+
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-slate-900 mb-2">Paystack Public Key</label>
@@ -558,7 +622,7 @@ export default function AdminSettingsPage() {
             <div className="mb-8">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-md font-semibold text-slate-900">Gmail Configuration</h3>
-                {apiSettings.gmail_address ? (
+                {configStatus.gmail.configured ? (
                   <div className="flex items-center gap-2">
                     <span className="flex items-center gap-2 text-sm text-green-700 bg-green-50 px-3 py-1 rounded-full">
                       <span className="w-2 h-2 bg-green-600 rounded-full"></span>
@@ -575,6 +639,25 @@ export default function AdminSettingsPage() {
                   </span>
                 )}
               </div>
+
+              {/* Configuration Log */}
+              {configStatus.gmail.timestamp && (
+                <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                  <p className="text-xs text-blue-700">
+                    <span className="font-semibold">
+                      {configStatus.gmail.configured ? '✓ Last Updated' : '○ Never Configured'}:
+                    </span>
+                    {' '}
+                    {new Date(configStatus.gmail.timestamp).toLocaleString()}
+                  </p>
+                  {configStatus.gmail.configured && (
+                    <p className="text-xs text-blue-600 mt-1">
+                      Gmail is active and ready to send order confirmations
+                    </p>
+                  )}
+                </div>
+              )}
+
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-slate-900 mb-2">Gmail Address</label>
