@@ -7,11 +7,13 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
+import { formatOrderNumber } from '@/lib/order-utils'
 
 function CheckoutSuccessContent() {
   const searchParams = useSearchParams()
   const orderId = searchParams.get('order')
   const method = searchParams.get('method')
+  const shortOrderNumber = orderId ? formatOrderNumber(orderId) : 'Processing...'
 
   return (
     <main className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50">
@@ -53,10 +55,10 @@ function CheckoutSuccessContent() {
           <div className="bg-slate-50 p-4 rounded-lg mb-6 text-left">
             <div className="mb-3">
               <p className="text-xs text-slate-600 uppercase tracking-wider">
-                Order ID
+                Order Number
               </p>
-              <p className="font-mono font-bold text-slate-900">
-                {orderId || 'Processing...'}
+              <p className="font-mono font-bold text-slate-900 text-lg">
+                #{shortOrderNumber}
               </p>
             </div>
 

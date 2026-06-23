@@ -341,8 +341,22 @@ Phone: ${formData.phone}`
       const whatsappUrl = `https://wa.me/2347036947900?text=${encodeURIComponent(message)}`
       
       clearCart()
-      window.open(whatsappUrl, '_blank')
-      router.push(`/checkout/success?order=${orderData[0].id}&method=whatsapp`)
+      
+      // Detect if on mobile device
+      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+      
+      if (isMobile) {
+        // On mobile, use window.location to open WhatsApp app directly
+        window.location.href = whatsappUrl
+      } else {
+        // On desktop, open in new tab
+        window.open(whatsappUrl, '_blank')
+      }
+      
+      // Still navigate to success page after a small delay
+      setTimeout(() => {
+        router.push(`/checkout/success?order=${orderData[0].id}&method=whatsapp`)
+      }, 500)
     } catch (err: any) {
       setError(err.message || 'Failed to create order')
     } finally {
