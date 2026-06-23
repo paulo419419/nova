@@ -33,6 +33,8 @@ export default function AdminSettingsPage() {
     paystackPublicKey: '',
     paystackSecretKey: '',
     whatsappNumber: '+2347036947900',
+    gmail_address: '',
+    gmail_password: '',
   })
 
   // Brand management
@@ -240,6 +242,44 @@ export default function AdminSettingsPage() {
 
       if (error) throw error
 
+      // Now save Gmail settings
+      const { data: existingGmail } = await supabase
+        .from('admin_settings')
+        .select('id')
+        .eq('setting_key', 'gmail_config')
+        .single()
+
+      let gmailError
+      if (existingGmail) {
+        // Update if exists
+        const { error: updateError } = await supabase
+          .from('admin_settings')
+          .update({
+            setting_value: JSON.stringify({
+              address: apiSettings.gmail_address || '',
+              password: apiSettings.gmail_password || ''
+            }),
+            updated_at: new Date().toISOString()
+          })
+          .eq('setting_key', 'gmail_config')
+        gmailError = updateError
+      } else {
+        // Insert if doesn't exist
+        const { error: insertError } = await supabase
+          .from('admin_settings')
+          .insert({
+            setting_key: 'gmail_config',
+            setting_value: JSON.stringify({
+              address: apiSettings.gmail_address || '',
+              password: apiSettings.gmail_password || ''
+            }),
+            description: 'Gmail API Configuration'
+          })
+        gmailError = insertError
+      }
+
+      if (gmailError) throw gmailError
+
       setMessage('API settings saved successfully!')
       setTimeout(() => setMessage(''), 3000)
       
@@ -256,6 +296,8 @@ export default function AdminSettingsPage() {
   const loadApiSettings = async () => {
     try {
       const supabase = createClient()
+      
+      // Load Paystack
       const { data: paystackData } = await supabase
         .from('admin_settings')
         .select('*')
@@ -272,6 +314,26 @@ export default function AdminSettingsPage() {
           }))
         } catch (e) {
           console.error('Error parsing Paystack config:', e)
+        }
+      }
+
+      // Load Gmail
+      const { data: gmailData } = await supabase
+        .from('admin_settings')
+        .select('*')
+        .eq('setting_key', 'gmail_config')
+        .single()
+
+      if (gmailData) {
+        try {
+          const config = JSON.parse(gmailData.setting_value || '{}')
+          setApiSettings(prev => ({
+            ...prev,
+            gmail_address: config.address || '',
+            gmail_password: config.password || ''
+          }))
+        } catch (e) {
+          console.error('Error parsing Gmail config:', e)
         }
       }
     } catch (err) {
@@ -547,10 +609,20 @@ export default function AdminSettingsPage() {
             <div className="mb-8">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-md font-semibold text-slate-900">Gmail Configuration</h3>
-                {apiSettings.gmail_address && (
-                  <span className="flex items-center gap-2 text-sm text-green-700 bg-green-50 px-3 py-1 rounded-full">
-                    <span className="w-2 h-2 bg-green-600 rounded-full"></span>
-                    Configured
+                {apiSettings.gmail_address ? (
+                  <div className="flex items-center gap-2">
+                    <span className="flex items-center gap-2 text-sm text-green-700 bg-green-50 px-3 py-1 rounded-full">
+                      <span className="w-2 h-2 bg-green-600 rounded-full"></span>
+                      Configured
+                    </span>
+                    <span className="text-xs text-slate-500 bg-slate-100 px-2 py-1 rounded">
+                      {apiSettings.gmail_address}
+                    </span>
+                  </div>
+                ) : (
+                  <span className="flex items-center gap-2 text-sm text-slate-500 bg-slate-100 px-3 py-1 rounded-full">
+                    <span className="w-2 h-2 bg-slate-400 rounded-full"></span>
+                    Not Configured
                   </span>
                 )}
               </div>

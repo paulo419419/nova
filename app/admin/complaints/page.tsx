@@ -159,6 +159,27 @@ export default function ComplaintsPage() {
     }
   }
 
+  const deleteComplaint = async (complaintId: string) => {
+    if (!confirm('Are you sure you want to delete this complaint? This action cannot be undone.')) {
+      return
+    }
+
+    try {
+      const supabase = createClient()
+      const { error } = await supabase
+        .from('complaints')
+        .delete()
+        .eq('id', complaintId)
+
+      if (!error) {
+        setComplaints(complaints.filter(c => c.id !== complaintId))
+        setSelectedComplaint(null)
+      }
+    } catch (error) {
+      console.error('Error deleting complaint:', error)
+    }
+  }
+
   const filteredComplaints = filterStatus === 'all' 
     ? complaints 
     : complaints.filter(c => c.status === filterStatus)
@@ -330,6 +351,15 @@ export default function ComplaintsPage() {
                     <p className="text-sm text-green-900">{selectedComplaint.admin_response}</p>
                   </div>
                 )}
+
+                <div className="mt-6 border-t border-slate-200 pt-4">
+                  <Button
+                    onClick={() => deleteComplaint(selectedComplaint.id)}
+                    className="w-full bg-red-600 hover:bg-red-700 text-white font-medium py-2 rounded-lg transition-colors"
+                  >
+                    Delete Complaint
+                  </Button>
+                </div>
               </Card>
             </div>
           )}
