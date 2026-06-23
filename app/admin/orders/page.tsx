@@ -33,6 +33,7 @@ export default function OrdersPage() {
   const [user, setUser] = useState<any>(null)
   const [filterStatus, setFilterStatus] = useState('all')
   const [filterPayment, setFilterPayment] = useState('all')
+  const [searchTerm, setSearchTerm] = useState('')
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null)
   const [updateStatus, setUpdateStatus] = useState('')
   const [updatePayment, setUpdatePayment] = useState('')
@@ -83,6 +84,43 @@ export default function OrdersPage() {
   useEffect(() => {
     fetchOrders()
   }, [filterStatus, filterPayment])
+
+  const deleteOrder = async (orderId: string) => {
+    if (!confirm('Are you sure you want to delete this order? This action cannot be undone.')) {
+      return
+    }
+
+    try {
+      const supabase = createClient()
+      const { error } = await supabase
+        .from('orders')
+        .delete()
+        .eq('id', orderId)
+
+      if (error) throw error
+
+      setMessage('Order deleted successfully')
+      setSelectedOrder(null)
+      fetchOrders()
+      setTimeout(() => setMessage(''), 3000)
+    } catch (err) {
+      console.error('Error deleting order:', err)
+      setError('Failed to delete order')
+    }
+  }
+
+  const filteredOrders = orders.filter(order => {
+    if (searchTerm) {
+      const searchLower = searchTerm.toLowerCase()
+      const orderNumber = order.id.slice(0, 4).toUpperCase()
+      return (
+        order.customer_name.toLowerCase().includes(searchLower) ||
+        orderNumber.includes(searchLower) ||
+        order.customer_email.toLowerCase().includes(searchLower)
+      )
+    }
+    return true
+  })
 
   const updateOrder = async (orderId: string) => {
     if (!updateStatus && !updatePayment && !notes) {
@@ -154,33 +192,45 @@ export default function OrdersPage() {
           </div>
         )}
 
-        {/* Filters */}
-        <div className="mb-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Search and Filters */}
+        <div className="mb-6 space-y-4">
           <div>
-            <label className="block text-sm font-medium text-slate-900 mb-2">Order Status</label>
-            <select
-              value={filterStatus}
-              onChange={(e) => setFilterStatus(e.target.value)}
+            <label className="block text-sm font-medium text-slate-900 mb-2">Search Orders</label>
+            <input
+              type="text"
+              placeholder="Search by customer name, order ID, or email..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="all">All Statuses</option>
-              {ORDER_STATUSES.map(status => (
-                <option key={status} value={status}>{status.charAt(0).toUpperCase() + status.slice(1)}</option>
-              ))}
-            </select>
+            />
           </div>
-          <div>
-            <label className="block text-sm font-medium text-slate-900 mb-2">Payment Status</label>
-            <select
-              value={filterPayment}
-              onChange={(e) => setFilterPayment(e.target.value)}
-              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="all">All Payment Statuses</option>
-              {PAYMENT_STATUSES.map(status => (
-                <option key={status} value={status}>{status.charAt(0).toUpperCase() + status.slice(1)}</option>
-              ))}
-            </select>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-slate-900 mb-2">Order Status</label>
+              <select
+                value={filterStatus}
+                onChange={(e) => setFilterStatus(e.target.value)}
+                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="all">All Statuses</option>
+                {ORDER_STATUSES.map(status => (
+                  <option key={status} value={status}>{status.charAt(0).toUpperCase() + status.slice(1)}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-900 mb-2">Payment Status</label>
+              <select
+                value={filterPayment}
+                onChange={(e) => setFilterPayment(e.target.value)}
+                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="all">All Payment Statuses</option>
+                {PAYMENT_STATUSES.map(status => (
+                  <option key={status} value={status}>{status.charAt(0).toUpperCase() + status.slice(1)}</option>
+                ))}
+              </select>
+            </div>
           </div>
         </div>
 
@@ -200,7 +250,13 @@ export default function OrdersPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200">
-                {orders.map(order => (
+                {filteredOrders.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} className="px-6 py-8 text-center text-slate-600">
+                      {searchTerm ? 'No orders match your search' : 'No orders found'}
+                    </td>
+                  </tr>
+                ) : filteredOrders.map(order => (
                   <tr key={order.id} className="hover:bg-slate-50">
                     <td className="px-6 py-4 text-sm text-slate-900">{order.customer_name}</td>
                     <td className="px-6 py-4 text-sm text-slate-600">{order.customer_email}</td>
@@ -232,18 +288,28 @@ export default function OrdersPage() {
                       {new Date(order.created_at).toLocaleDateString()}
                     </td>
                     <td className="px-6 py-4 text-sm">
-                      <Button
-                        size="sm"
-                        onClick={() => {
-                          setSelectedOrder(order)
-                          setUpdateStatus(order.order_status)
-                          setUpdatePayment(order.payment_status)
-                          setNotes(order.order_notes || '')
-                        }}
-                        className="bg-blue-600 hover:bg-blue-700"
-                      >
-                        Edit
-                      </Button>
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          onClick={() => {
+                            setSelectedOrder(order)
+                            setUpdateStatus(order.order_status)
+                            setUpdatePayment(order.payment_status)
+                            setNotes(order.order_notes || '')
+                          }}
+                          className="bg-blue-600 hover:bg-blue-700"
+                        >
+                          Edit
+                        </Button>
+                        <Button
+                          size="sm"
+                          onClick={() => deleteOrder(order.id)}
+                          variant="outline"
+                          className="text-red-600 border-red-300 hover:bg-red-50"
+                        >
+                          Delete
+                        </Button>
+                      </div>
                     </td>
                   </tr>
                 ))}
