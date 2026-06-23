@@ -209,7 +209,7 @@ export default function CheckoutPage() {
               estimatedDelivery.setDate(estimatedDelivery.getDate() + 5)
 
               try {
-                await fetch('/api/send-confirmation-email', {
+                const emailRes = await fetch('/api/send-confirmation-email', {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({
@@ -233,6 +233,14 @@ export default function CheckoutPage() {
                     })
                   })
                 })
+                
+                if (!emailRes.ok) {
+                  const errorData = await emailRes.json()
+                  console.error('[v0] Email API error:', errorData)
+                } else {
+                  const emailData = await emailRes.json()
+                  console.log('[v0] Confirmation email sent successfully:', emailData.messageId)
+                }
               } catch (emailError) {
                 console.error('[v0] Failed to send confirmation email:', emailError)
               }
@@ -564,7 +572,7 @@ Phone: ${formData.phone}`
                   <div className="flex-1">
                     <div className="font-semibold text-slate-900">Paystack</div>
                     <p className="text-sm text-slate-600">
-                      Secure online payment with your card
+                      Pay online securely (Card, Bank Transfer, USSD, Mobile Money)
                     </p>
                   </div>
                 </label>
