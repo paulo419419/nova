@@ -11,13 +11,22 @@ export async function POST(request: NextRequest) {
     const { data: emailSettings } = await supabase
       .from('admin_settings')
       .select('*')
-      .eq('setting_key', 'email_config')
+      .eq('setting_key', 'gmail_config')
       .single()
 
     const emailConfig = emailSettings ? JSON.parse(emailSettings.setting_value || '{}') : {
-      gmailAddress: process.env.GMAIL_ADDRESS,
-      gmailAppPassword: process.env.GMAIL_APP_PASSWORD,
+      address: process.env.GMAIL_ADDRESS,
+      password: process.env.GMAIL_APP_PASSWORD,
       senderName: 'NOVA GADGETS'
+    }
+
+    // Validate that email is configured
+    if (!emailConfig.address || !emailConfig.password) {
+      console.error('[v0] Gmail not configured: missing address or password')
+      return NextResponse.json(
+        { error: 'Email service not configured', details: 'Gmail address or password missing' },
+        { status: 500 }
+      )
     }
 
     // Create transporter with settings from database
@@ -26,8 +35,8 @@ export async function POST(request: NextRequest) {
       port: 587,
       secure: false,
       auth: {
-        user: emailConfig.gmailAddress,
-        pass: emailConfig.gmailAppPassword,
+        user: emailConfig.address,
+        pass: emailConfig.password,
       },
     })
 
@@ -203,7 +212,7 @@ export async function POST(request: NextRequest) {
     `
 
     const result = await transporter.sendMail({
-      from: `${emailConfig.senderName} <${emailConfig.gmailAddress}>`,
+      from: `${emailConfig.senderName || 'NOVA GADGETS'} <${emailConfig.address}>`,
       to: customerEmail,
       subject: `Order Confirmation - Order #${orderNumber}`,
       html: htmlContent,

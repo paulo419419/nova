@@ -59,6 +59,9 @@ export default function AdminSettingsPage() {
 
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
+  const [testEmailLoading, setTestEmailLoading] = useState(false)
+  const [testEmailMessage, setTestEmailMessage] = useState('')
+  const [testEmailError, setTestEmailError] = useState('')
   const [configStatus, setConfigStatus] = useState({
     paystack: { configured: false, timestamp: '' },
     gmail: { configured: false, timestamp: '' },
@@ -361,6 +364,39 @@ export default function AdminSettingsPage() {
       setError('Failed to add software')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const testEmailConfiguration = async () => {
+    setTestEmailLoading(true)
+    setTestEmailError('')
+    setTestEmailMessage('')
+
+    try {
+      const testEmail = apiSettings.gmail_address || user?.email
+      if (!testEmail) {
+        setTestEmailError('No email address to send to. Please set Gmail address first.')
+        return
+      }
+
+      const res = await fetch('/api/test-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ testEmail })
+      })
+
+      if (!res.ok) {
+        const data = await res.json()
+        throw new Error(data.details || data.error)
+      }
+
+      const data = await res.json()
+      setTestEmailMessage(`✓ Test email sent to ${testEmail}! Check your inbox (or spam folder)`)
+      setTimeout(() => setTestEmailMessage(''), 5000)
+    } catch (err: any) {
+      setTestEmailError(err.message || 'Failed to send test email')
+    } finally {
+      setTestEmailLoading(false)
     }
   }
 
@@ -682,6 +718,29 @@ export default function AdminSettingsPage() {
                   <p className="text-xs text-slate-500 mt-1">Generate at: https://myaccount.google.com/apppasswords</p>
                 </div>
               </div>
+
+              {/* Test Email Button */}
+              {configStatus.gmail.configured && (
+                <div className="mt-6 pt-6 border-t border-slate-200">
+                  <Button
+                    onClick={testEmailConfiguration}
+                    disabled={testEmailLoading}
+                    className="w-full bg-green-600 hover:bg-green-700 text-white font-medium py-2 rounded-lg transition-colors"
+                  >
+                    {testEmailLoading ? 'Sending test email...' : '✓ Test Email Configuration'}
+                  </Button>
+                  {testEmailMessage && (
+                    <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-lg">
+                      <p className="text-sm text-green-700">{testEmailMessage}</p>
+                    </div>
+                  )}
+                  {testEmailError && (
+                    <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg">
+                      <p className="text-sm text-red-700">{testEmailError}</p>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             <Button
