@@ -158,42 +158,30 @@ export default function AdminSettingsPage() {
 
   const saveEmailSettings = async () => {
     setLoading(true)
+    setError('')
     try {
-      const supabase = createClient()
       for (const [key, value] of Object.entries(emailSettings)) {
-        // Check if exists first
-        const { data: existingData } = await supabase
-          .from('admin_settings')
-          .select('id')
-          .eq('setting_key', key)
-          .single()
+        const res = await fetch('/api/admin/settings', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            setting_key: key,
+            setting_value: String(value),
+            description: `Email ${key}`
+          })
+        })
 
-        if (existingData) {
-          // Update existing
-          await supabase
-            .from('admin_settings')
-            .update({
-              setting_value: String(value),
-              updated_at: new Date().toISOString()
-            })
-            .eq('setting_key', key)
-        } else {
-          // Insert new
-          await supabase
-            .from('admin_settings')
-            .insert({
-              setting_key: key,
-              setting_value: String(value),
-              description: `Email ${key}`
-            })
+        if (!res.ok) {
+          const data = await res.json()
+          throw new Error(data.error || `Failed to save ${key}`)
         }
       }
       setMessage('Email settings saved successfully')
       setTimeout(() => setMessage(''), 3000)
       await loadSettings()
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error saving email settings:', err)
-      setError('Failed to save email settings')
+      setError(err.message || 'Failed to save email settings')
     } finally {
       setLoading(false)
     }
@@ -201,93 +189,54 @@ export default function AdminSettingsPage() {
 
   const saveApiSettings = async () => {
     setLoading(true)
+    setError('')
     try {
-      const supabase = createClient()
-      
-      // First, check if record exists
-      const { data: existingData } = await supabase
-        .from('admin_settings')
-        .select('id')
-        .eq('setting_key', 'paystack_config')
-        .single()
+      // Save Paystack settings via API
+      const paystackRes = await fetch('/api/admin/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          setting_key: 'paystack_config',
+          setting_value: JSON.stringify({
+            publicKey: apiSettings.paystackPublicKey || '',
+            secretKey: apiSettings.paystackSecretKey || ''
+          }),
+          description: 'Paystack API Configuration'
+        })
+      })
 
-      let error
-      if (existingData) {
-        // Update if exists
-        const { error: updateError } = await supabase
-          .from('admin_settings')
-          .update({
-            setting_value: JSON.stringify({
-              publicKey: apiSettings.paystackPublicKey || '',
-              secretKey: apiSettings.paystackSecretKey || ''
-            }),
-            updated_at: new Date().toISOString()
-          })
-          .eq('setting_key', 'paystack_config')
-        error = updateError
-      } else {
-        // Insert if doesn't exist
-        const { error: insertError } = await supabase
-          .from('admin_settings')
-          .insert({
-            setting_key: 'paystack_config',
-            setting_value: JSON.stringify({
-              publicKey: apiSettings.paystackPublicKey || '',
-              secretKey: apiSettings.paystackSecretKey || ''
-            }),
-            description: 'Paystack API Configuration'
-          })
-        error = insertError
+      if (!paystackRes.ok) {
+        const data = await paystackRes.json()
+        throw new Error(data.error || 'Failed to save Paystack settings')
       }
 
-      if (error) throw error
+      // Save Gmail settings via API
+      const gmailRes = await fetch('/api/admin/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          setting_key: 'gmail_config',
+          setting_value: JSON.stringify({
+            address: apiSettings.gmail_address || '',
+            password: apiSettings.gmail_password || ''
+          }),
+          description: 'Gmail API Configuration'
+        })
+      })
 
-      // Now save Gmail settings
-      const { data: existingGmail } = await supabase
-        .from('admin_settings')
-        .select('id')
-        .eq('setting_key', 'gmail_config')
-        .single()
-
-      let gmailError
-      if (existingGmail) {
-        // Update if exists
-        const { error: updateError } = await supabase
-          .from('admin_settings')
-          .update({
-            setting_value: JSON.stringify({
-              address: apiSettings.gmail_address || '',
-              password: apiSettings.gmail_password || ''
-            }),
-            updated_at: new Date().toISOString()
-          })
-          .eq('setting_key', 'gmail_config')
-        gmailError = updateError
-      } else {
-        // Insert if doesn't exist
-        const { error: insertError } = await supabase
-          .from('admin_settings')
-          .insert({
-            setting_key: 'gmail_config',
-            setting_value: JSON.stringify({
-              address: apiSettings.gmail_address || '',
-              password: apiSettings.gmail_password || ''
-            }),
-            description: 'Gmail API Configuration'
-          })
-        gmailError = insertError
+      if (!gmailRes.ok) {
+        const data = await gmailRes.json()
+        throw new Error(data.error || 'Failed to save Gmail settings')
       }
-
-      if (gmailError) throw gmailError
 
       setMessage('API settings saved successfully!')
       setTimeout(() => setMessage(''), 3000)
       
       // Refresh to show saved values
       await loadApiSettings()
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error saving API settings:', err)
-      setError('Failed to save API settings. Check permissions.')
+      setError(err.message || 'Failed to save API settings. Check permissions.')
     } finally {
       setLoading(false)
     }
