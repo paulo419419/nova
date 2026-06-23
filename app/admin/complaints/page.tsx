@@ -60,12 +60,20 @@ export default function ComplaintsPage() {
 
   const fetchComplaints = async () => {
     try {
-      const res = await fetch('/api/complaints')
-      const data = await res.json()
-
-      if (data.success) {
-        setComplaints(data.data || [])
+      const supabase = createClient()
+      
+      // Fetch complaints directly from Supabase
+      const { data: complaints, error } = await supabase
+        .from('complaints')
+        .select('*')
+        .order('created_at', { ascending: false })
+      
+      if (error) {
+        console.error('Error fetching complaints:', error)
+        return
       }
+      
+      setComplaints(complaints || [])
     } catch (error) {
       console.error('Error fetching complaints:', error)
     }

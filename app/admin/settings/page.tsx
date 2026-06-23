@@ -159,15 +159,38 @@ export default function AdminSettingsPage() {
     try {
       const supabase = createClient()
       for (const [key, value] of Object.entries(emailSettings)) {
-        await supabase.from('admin_settings').upsert({
-          setting_key: key,
-          setting_value: String(value),
-          description: `Email ${key}`,
-        })
+        // Check if exists first
+        const { data: existingData } = await supabase
+          .from('admin_settings')
+          .select('id')
+          .eq('setting_key', key)
+          .single()
+
+        if (existingData) {
+          // Update existing
+          await supabase
+            .from('admin_settings')
+            .update({
+              setting_value: String(value),
+              updated_at: new Date().toISOString()
+            })
+            .eq('setting_key', key)
+        } else {
+          // Insert new
+          await supabase
+            .from('admin_settings')
+            .insert({
+              setting_key: key,
+              setting_value: String(value),
+              description: `Email ${key}`
+            })
+        }
       }
       setMessage('Email settings saved successfully')
       setTimeout(() => setMessage(''), 3000)
+      await loadSettings()
     } catch (err) {
+      console.error('Error saving email settings:', err)
       setError('Failed to save email settings')
     } finally {
       setLoading(false)
@@ -179,26 +202,49 @@ export default function AdminSettingsPage() {
     try {
       const supabase = createClient()
       
-      // Save Paystack settings
-      const { error: paystackError } = await supabase
+      // First, check if record exists
+      const { data: existingData } = await supabase
         .from('admin_settings')
-        .upsert({
-          setting_key: 'paystack_config',
-          setting_value: JSON.stringify({
-            publicKey: apiSettings.paystackPublicKey || '',
-            secretKey: apiSettings.paystackSecretKey || ''
-          })
-        }, {
-          onConflict: 'setting_key'
-        })
+        .select('id')
+        .eq('setting_key', 'paystack_config')
+        .single()
 
-      if (paystackError) throw paystackError
+      let error
+      if (existingData) {
+        // Update if exists
+        const { error: updateError } = await supabase
+          .from('admin_settings')
+          .update({
+            setting_value: JSON.stringify({
+              publicKey: apiSettings.paystackPublicKey || '',
+              secretKey: apiSettings.paystackSecretKey || ''
+            }),
+            updated_at: new Date().toISOString()
+          })
+          .eq('setting_key', 'paystack_config')
+        error = updateError
+      } else {
+        // Insert if doesn't exist
+        const { error: insertError } = await supabase
+          .from('admin_settings')
+          .insert({
+            setting_key: 'paystack_config',
+            setting_value: JSON.stringify({
+              publicKey: apiSettings.paystackPublicKey || '',
+              secretKey: apiSettings.paystackSecretKey || ''
+            }),
+            description: 'Paystack API Configuration'
+          })
+        error = insertError
+      }
+
+      if (error) throw error
 
       setMessage('API settings saved successfully!')
       setTimeout(() => setMessage(''), 3000)
       
       // Refresh to show saved values
-      await loadSettings()
+      await loadApiSettings()
     } catch (err) {
       console.error('Error saving API settings:', err)
       setError('Failed to save API settings. Check permissions.')
